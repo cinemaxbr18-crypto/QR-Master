@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Master - Gerador Profissional</title>
+    <title>QR Master - Gerador Profissional & 2FA</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -26,7 +26,7 @@
         try {
             firebaseConfig = JSON.parse(__firebase_config);
         } catch (e) {
-            console.error("Firebase config not found, falling back to empty object.");
+            console.error("Firebase config not found. Verify your setup.");
             firebaseConfig = {};
         }
 
@@ -37,8 +37,13 @@
         try {
             const app = initializeApp(firebaseConfig);
             auth = getAuth(app);
+            auth.languageCode = 'pt'; // Force Portuguese in emails/popups
             db = getFirestore(app);
+            
+            // Setup Google Provider
             googleProvider = new GoogleAuthProvider();
+            googleProvider.addScope('profile');
+            googleProvider.addScope('email');
         } catch (e) {
             console.error("Firebase init error:", e);
         }
@@ -47,14 +52,12 @@
         let currentUser = null;
         let qrCodeObj = null;
         let guestCount = parseInt(localStorage.getItem('guest_qr_count') || '0');
-        const MAX_GUEST_LIMIT = 2;
+        const MAX_GUEST_LIMIT = 2; // Limite para visitantes
 
         // --- DOM Elements ---
         const loginModal = document.getElementById('loginModal');
         const authBtn = document.getElementById('authBtn');
         const userBadge = document.getElementById('userBadge');
-        const generateBtn = document.getElementById('generateBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
         const typeTabs = document.querySelectorAll('.type-tab');
         const inputSections = document.querySelectorAll('.input-section');
         const logoInput = document.getElementById('logoInput');
@@ -62,14 +65,13 @@
 
         // --- Auth Logic ---
         
-        // Initial Auth Flow to ensure Firestore connectivity
+        // Initial Auth Flow
         const initAuth = async () => {
             if (!auth) return;
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
-                    // Only sign in anonymously if not already signed in
                     if (!auth.currentUser) {
                         await signInAnonymously(auth);
                     }
@@ -84,7 +86,7 @@
         window.toggleLoginModal = () => {
             if (currentUser && !currentUser.isAnonymous) {
                 signOut(auth).then(() => {
-                    alert('Desconectado com sucesso!');
+                    showToast('Desconectado com sucesso!', 'success');
                     window.location.reload();
                 });
             } else {
@@ -98,13 +100,22 @@
             loginModal.classList.remove('flex');
         };
 
+        // GOOGLE LOGIN FUNCTION
         window.loginWithGoogle = async () => {
+            if (!auth) {
+                showToast("Erro: Firebase não configurado.", "error");
+                return;
+            }
             try {
                 const result = await signInWithPopup(auth, googleProvider);
                 window.closeModal();
-                showToast("Login realizado com sucesso!", "success");
+                showToast(`Bem-vindo, ${result.user.displayName}!`, "success");
             } catch (error) {
-                showToast("Erro no login: " + error.message, "error");
+                console.error(error);
+                let msg = "Erro no login.";
+                if (error.code === 'auth/popup-closed-by-user') msg = "Login cancelado.";
+                if (error.code === 'auth/popup-blocked') msg = "Popup bloqueado pelo navegador.";
+                showToast(msg, "error");
             }
         };
 
@@ -117,7 +128,7 @@
             try {
                 if (isRegister) {
                     await createUserWithEmailAndPassword(auth, email, pass);
-                    showToast("Conta criada!", "success");
+                    showToast("Conta criada com sucesso!", "success");
                 } else {
                     await signInWithEmailAndPassword(auth, email, pass);
                     showToast("Login realizado!", "success");
@@ -130,7 +141,6 @@
 
         // --- QR Code Logic ---
 
-        // Initialize QR Code Styling
         function initQR() {
             qrCodeObj = new QRCodeStyling({
                 width: 300,
@@ -205,18 +215,19 @@
                 t.classList.add('bg-gray-700', 'text-gray-300');
             });
             const activeTab = document.querySelector(`[onclick="switchTab('${type}')"]`);
-            activeTab.classList.remove('bg-gray-700', 'text-gray-300');
-            activeTab.classList.add('bg-indigo-600', 'text-white');
+            if(activeTab) {
+                activeTab.classList.remove('bg-gray-700', 'text-gray-300');
+                activeTab.classList.add('bg-indigo-600', 'text-white');
+            }
 
             inputSections.forEach(s => s.classList.add('hidden'));
-            document.getElementById(`input-${type}`).classList.remove('hidden');
+            const targetSection = document.getElementById(`input-${type}`);
+            if(targetSection) targetSection.classList.remove('hidden');
             
-            // Set current type for generation
             window.currentType = type;
         };
 
         function isGuest() {
-            // User is guest if null OR if anonymous
             return !currentUser || currentUser.isAnonymous;
         }
 
@@ -264,6 +275,19 @@
                     if(!key || !name || !city) throw new Error("Chave, Nome e Cidade são obrigatórios para o Pix");
                     
                     data = generatePixPayload(key, name, city, amount);
+                } else if (window.currentType === '2fa') {
+                    // NEW: Google Authenticator Logic
+                    const secret = document.getElementById('2fa-secret').value;
+                    const account = document.getElementById('2fa-account').value || 'Usuario';
+                    const issuer = document.getElementById('2fa-issuer').value || 'QR Master';
+                    
+                    if(!secret) throw new Error("O Segredo (Key) é obrigatório");
+                    
+                    // Cleanup secret (remove spaces)
+                    const cleanSecret = secret.replace(/\s/g, '');
+                    
+                    // URI Format for Google Authenticator: otpauth://totp/Issuer:Account?secret=SECRET&issuer=Issuer
+                    data = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${cleanSecret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
                 }
 
                 // Handle Image
@@ -293,13 +317,7 @@
             } else {
                 // Save usage stats to Firestore
                 try {
-                   // We use the authenticated user (even if anonymous, but here we only enter if NOT guest/anonymous per logic above? 
-                   // actually, we should only save to firestore for registered users based on app logic, 
-                   // or we can save for everyone if using anonymous auth.
-                   // The logic `!isGuest()` implies registered user.
-                   
                    const userStatsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'stats', 'usage');
-                   // We won't await this to keep UI snappy
                    setDoc(userStatsRef, { count: increment(1), last_generated: new Date() }, { merge: true });
                 } catch(e) { console.log("Stats update skipped", e); }
             }
@@ -307,7 +325,7 @@
         }
 
         window.downloadQR = () => {
-            qrCodeObj.download({ name: "meu-qr-code", extension: "png" });
+            qrCodeObj.download({ name: "qr-code-master", extension: "png" });
         };
 
         window.openImgBB = () => {
@@ -319,19 +337,18 @@
         function updateCounterUI() {
             const counterEl = document.getElementById('limitCounter');
             
-            // Treat anonymous users as guests for UI purposes
             if (isGuest()) {
                 counterEl.innerText = `Gerados: ${guestCount}/${MAX_GUEST_LIMIT} (Visitante)`;
-                counterEl.classList.remove('hidden');
+                counterEl.classList.remove('hidden', 'text-green-400');
+                counterEl.classList.add('text-gray-500');
                 
-                // Lock Image Input visual
                 lockOverlay.classList.remove('hidden');
                 logoInput.disabled = true;
             } else {
                 counterEl.innerText = "Modo Ilimitado (Premium)";
+                counterEl.classList.remove('hidden', 'text-gray-500');
                 counterEl.classList.add('text-green-400');
                 
-                // Unlock Image Input
                 lockOverlay.classList.add('hidden');
                 logoInput.disabled = false;
             }
@@ -340,7 +357,7 @@
         function showToast(msg, type) {
             const toast = document.getElementById('toast');
             toast.innerText = msg;
-            toast.className = `fixed bottom-5 right-5 px-6 py-3 rounded-lg shadow-lg text-white transform transition-all duration-300 translate-y-20 ${type === 'error' ? 'bg-red-500' : 'bg-green-500'}`;
+            toast.className = `fixed bottom-5 right-5 px-6 py-3 rounded-lg shadow-lg text-white transform transition-all duration-300 translate-y-20 z-50 ${type === 'error' ? 'bg-red-500' : 'bg-green-500'}`;
             
             requestAnimationFrame(() => {
                 toast.classList.remove('translate-y-20');
@@ -357,7 +374,6 @@
                 currentUser = user;
                 if (user && !user.isAnonymous) {
                     authBtn.innerText = "Sair";
-                    // Fix: Check if email exists before splitting, otherwise fallback to "Utilizador"
                     const userName = user.displayName || (user.email ? user.email.split('@')[0] : 'Utilizador');
                     userBadge.innerText = userName;
                     userBadge.classList.remove('hidden');
@@ -387,6 +403,7 @@
         input[type="file"]::file-selector-button {
             display: none;
         }
+        /* Tab active state handled by JS via classes */
     </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex flex-col">
@@ -418,18 +435,22 @@
             <h2 class="text-2xl font-bold mb-6 text-gray-100">Criar Novo QR Code</h2>
 
             <!-- Type Selector -->
-            <div class="flex flex-wrap gap-2 mb-6">
-                <button onclick="switchTab('url')" class="type-tab flex-1 py-2 px-4 rounded-lg bg-indigo-600 text-white font-medium text-sm transition-all text-center">
-                    Link / Site
+            <div class="grid grid-cols-5 gap-2 mb-6">
+                <button onclick="switchTab('url')" class="type-tab py-2 px-2 rounded-lg bg-indigo-600 text-white font-medium text-xs md:text-sm transition-all text-center">
+                    Link
                 </button>
-                <button onclick="switchTab('text')" class="type-tab flex-1 py-2 px-4 rounded-lg bg-gray-700 text-gray-300 font-medium text-sm transition-all text-center">
+                <button onclick="switchTab('text')" class="type-tab py-2 px-2 rounded-lg bg-gray-700 text-gray-300 font-medium text-xs md:text-sm transition-all text-center">
                     Texto
                 </button>
-                <button onclick="switchTab('wifi')" class="type-tab flex-1 py-2 px-4 rounded-lg bg-gray-700 text-gray-300 font-medium text-sm transition-all text-center">
+                <button onclick="switchTab('wifi')" class="type-tab py-2 px-2 rounded-lg bg-gray-700 text-gray-300 font-medium text-xs md:text-sm transition-all text-center">
                     Wi-Fi
                 </button>
-                <button onclick="switchTab('pix')" class="type-tab flex-1 py-2 px-4 rounded-lg bg-gray-700 text-gray-300 font-medium text-sm transition-all text-center flex items-center justify-center gap-1">
+                <button onclick="switchTab('pix')" class="type-tab py-2 px-2 rounded-lg bg-gray-700 text-gray-300 font-medium text-xs md:text-sm transition-all text-center flex items-center justify-center gap-1">
                     <span class="text-green-400">❖</span> Pix
+                </button>
+                <!-- NEW 2FA TAB -->
+                <button onclick="switchTab('2fa')" class="type-tab py-2 px-2 rounded-lg bg-gray-700 text-gray-300 font-medium text-xs md:text-sm transition-all text-center flex items-center justify-center gap-1">
+                    <span class="text-blue-400">🔒</span> 2FA
                 </button>
             </div>
 
@@ -492,6 +513,28 @@
                         <input type="number" step="0.01" id="pix-amount" placeholder="0.00" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-indigo-500 outline-none">
                     </div>
                 </div>
+
+                <!-- NEW: 2FA Input -->
+                <div id="input-2fa" class="input-section hidden space-y-3">
+                    <div class="bg-indigo-900/30 p-3 rounded-lg border border-indigo-500/30 mb-2">
+                        <p class="text-xs text-indigo-200">ℹ️ Cria códigos para apps como Google Authenticator ou Authy.</p>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 text-sm mb-1">Chave Secreta (Secret Key)</label>
+                        <input type="text" id="2fa-secret" placeholder="ex: JBSWY3DPEHPK3PXP" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-indigo-500 outline-none font-mono">
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <label class="block text-gray-400 text-sm mb-1">Nome da Conta (Usuário)</label>
+                            <input type="text" id="2fa-account" placeholder="ex: seu@email.com" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-indigo-500 outline-none">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-gray-400 text-sm mb-1">Emissor (App/Site)</label>
+                            <input type="text" id="2fa-issuer" placeholder="ex: MinhaEmpresa" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-indigo-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Customization (Image) -->
@@ -530,8 +573,8 @@
                         </svg>
                         <div>
                             <p class="mb-1">Precisa hospedar uma imagem na web para usar em links?</p>
-                            <p class="mb-2">Recomendamos o <strong>ImgBB</strong>. Crie uma conta lá para hospedar suas imagens gratuitamente e obter o link direto.</p>
-                            <button onclick="openImgBB()" class="text-blue-400 hover:text-blue-300 underline font-semibold">Ir para o site oficial do ImgBB &rarr;</button>
+                            <p class="mb-2">Recomendamos o <strong>ImgBB</strong>. Crie uma conta lá para hospedar suas imagens gratuitamente.</p>
+                            <button onclick="openImgBB()" class="text-blue-400 hover:text-blue-300 underline font-semibold">Ir para o ImgBB &rarr;</button>
                         </div>
                     </div>
                 </div>
@@ -577,6 +620,7 @@
             <h2 class="text-2xl font-bold text-center mb-6">Acesse o QR Master</h2>
             <p class="text-gray-400 text-center text-sm mb-8">Faça login para criar QR Codes ilimitados e adicionar logotipos personalizados.</p>
 
+            <!-- Google Login Button -->
             <button onclick="loginWithGoogle()" class="w-full bg-white hover:bg-gray-100 text-gray-900 font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-3 transition-colors mb-6">
                 <svg class="w-5 h-5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -604,7 +648,7 @@
     </div>
 
     <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-5 right-5 px-6 py-3 rounded-lg shadow-lg text-white transform transition-all duration-300 translate-y-20 bg-green-500">
+    <div id="toast" class="fixed bottom-5 right-5 px-6 py-3 rounded-lg shadow-lg text-white transform transition-all duration-300 translate-y-20 z-50 bg-green-500">
         Mensagem
     </div>
 
