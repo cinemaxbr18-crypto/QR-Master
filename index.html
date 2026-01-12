@@ -17,27 +17,30 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Firebase Configuration ---
-        // Use the global variable injected by the environment
-        let firebaseConfig;
-        try {
-            firebaseConfig = JSON.parse(__firebase_config);
-        } catch (e) {
-            console.error("Firebase config not found. Verify your setup.");
-            firebaseConfig = {};
-        }
-
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'qr-master-app';
+        // --- Firebase Configuration (QR Master) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCGvo2a43dsDGBv0K6ELy0yjrPZmbemqVg",
+            authDomain: "qr-master-65489.firebaseapp.com",
+            projectId: "qr-master-65489",
+            storageBucket: "qr-master-65489.firebasestorage.app",
+            messagingSenderId: "303212642438",
+            appId: "1:303212642438:web:65ef833e4ecacd00b21107",
+            measurementId: "G-YB097SJZY1"
+        };
 
         // Initialize Firebase
-        let auth, db, googleProvider;
+        let auth, db, googleProvider, analytics;
+        const appId = 'qr-master-app'; // ID interno do app para estrutura de dados
+
         try {
             const app = initializeApp(firebaseConfig);
+            analytics = getAnalytics(app); // Inicializa Analytics
             auth = getAuth(app);
-            auth.languageCode = 'pt'; // Force Portuguese in emails/popups
+            auth.languageCode = 'pt';
             db = getFirestore(app);
             
             // Setup Google Provider
@@ -52,7 +55,7 @@
         let currentUser = null;
         let qrCodeObj = null;
         let guestCount = parseInt(localStorage.getItem('guest_qr_count') || '0');
-        const MAX_GUEST_LIMIT = 2; // Limite para visitantes
+        const MAX_GUEST_LIMIT = 2;
 
         // --- DOM Elements ---
         const loginModal = document.getElementById('loginModal');
@@ -65,15 +68,35 @@
 
         // --- Auth Logic ---
         
+        // Helper to attempt anonymous login safely
+        const trySignInAnonymously = async () => {
+            try {
+                await signInAnonymously(auth);
+            } catch (error) {
+                // Ignore "admin-restricted-operation" which means Anon Auth is disabled in console
+                if (error.code === 'auth/admin-restricted-operation') {
+                    console.warn("Aviso: Login anônimo desabilitado no Firebase Console. O app continuará em modo visitante offline.");
+                } else {
+                    console.error("Erro no login anônimo:", error);
+                }
+            }
+        };
+
         // Initial Auth Flow
         const initAuth = async () => {
             if (!auth) return;
             try {
+                // Tenta usar token do ambiente se compatível, senão fallback
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+                    try {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } catch (tokenError) {
+                        console.warn("Token do ambiente não corresponde a este projeto. Tentando fallback...");
+                        if (!auth.currentUser) await trySignInAnonymously();
+                    }
                 } else {
                     if (!auth.currentUser) {
-                        await signInAnonymously(auth);
+                        await trySignInAnonymously();
                     }
                 }
             } catch (error) {
@@ -115,6 +138,8 @@
                 let msg = "Erro no login.";
                 if (error.code === 'auth/popup-closed-by-user') msg = "Login cancelado.";
                 if (error.code === 'auth/popup-blocked') msg = "Popup bloqueado pelo navegador.";
+                if (error.code === 'auth/operation-not-allowed') msg = "Login Google não habilitado no console Firebase.";
+                if (error.code === 'auth/unauthorized-domain') msg = "Domínio não autorizado no Firebase.";
                 showToast(msg, "error");
             }
         };
@@ -135,7 +160,11 @@
                 }
                 window.closeModal();
             } catch (error) {
-                showToast(error.message, "error");
+                let msg = error.message;
+                if(error.code === 'auth/email-already-in-use') msg = "Email já cadastrado.";
+                if(error.code === 'auth/wrong-password') msg = "Senha incorreta.";
+                if(error.code === 'auth/user-not-found') msg = "Usuário não encontrado.";
+                showToast(msg, "error");
             }
         };
 
@@ -276,17 +305,15 @@
                     
                     data = generatePixPayload(key, name, city, amount);
                 } else if (window.currentType === '2fa') {
-                    // NEW: Google Authenticator Logic
                     const secret = document.getElementById('2fa-secret').value;
                     const account = document.getElementById('2fa-account').value || 'Usuario';
                     const issuer = document.getElementById('2fa-issuer').value || 'QR Master';
                     
                     if(!secret) throw new Error("O Segredo (Key) é obrigatório");
                     
-                    // Cleanup secret (remove spaces)
+                    // Cleanup secret
                     const cleanSecret = secret.replace(/\s/g, '');
                     
-                    // URI Format for Google Authenticator: otpauth://totp/Issuer:Account?secret=SECRET&issuer=Issuer
                     data = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${cleanSecret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
                 }
 
@@ -317,9 +344,12 @@
             } else {
                 // Save usage stats to Firestore
                 try {
-                   const userStatsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'stats', 'usage');
-                   setDoc(userStatsRef, { count: increment(1), last_generated: new Date() }, { merge: true });
-                } catch(e) { console.log("Stats update skipped", e); }
+                   if(currentUser && currentUser.uid) {
+                        // Use rules compliant path
+                        const userStatsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'stats', 'usage');
+                        await setDoc(userStatsRef, { count: increment(1), last_generated: new Date() }, { merge: true });
+                   }
+                } catch(e) { console.log("Stats update skipped/error", e); }
             }
             showToast("QR Code gerado com sucesso!", "success");
         }
@@ -399,11 +429,9 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        /* Custom file input */
         input[type="file"]::file-selector-button {
             display: none;
         }
-        /* Tab active state handled by JS via classes */
     </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex flex-col">
@@ -448,7 +476,6 @@
                 <button onclick="switchTab('pix')" class="type-tab py-2 px-2 rounded-lg bg-gray-700 text-gray-300 font-medium text-xs md:text-sm transition-all text-center flex items-center justify-center gap-1">
                     <span class="text-green-400">❖</span> Pix
                 </button>
-                <!-- NEW 2FA TAB -->
                 <button onclick="switchTab('2fa')" class="type-tab py-2 px-2 rounded-lg bg-gray-700 text-gray-300 font-medium text-xs md:text-sm transition-all text-center flex items-center justify-center gap-1">
                     <span class="text-blue-400">🔒</span> 2FA
                 </button>
@@ -514,7 +541,7 @@
                     </div>
                 </div>
 
-                <!-- NEW: 2FA Input -->
+                <!-- 2FA Input -->
                 <div id="input-2fa" class="input-section hidden space-y-3">
                     <div class="bg-indigo-900/30 p-3 rounded-lg border border-indigo-500/30 mb-2">
                         <p class="text-xs text-indigo-200">ℹ️ Cria códigos para apps como Google Authenticator ou Authy.</p>
