@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="QR Master - Gerador de QR Code Profissional com histórico e segurança avançada.">
+    <meta name="description" content="QR Master - Gerador de QR Code Profissional.">
     <title>QR Master - Gerador Premium</title>
     
     <!-- ==========================================
@@ -67,7 +67,7 @@
             <div id="viewer-content" class="w-full mb-8"></div>
 
             <div class="text-center">
-                <a href="/" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-full text-white font-medium transition-all border border-gray-700 hover:border-gray-600">
+                <a href="https://cinemaxbr18-crypto.github.io/QR-Master/" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-full text-white font-medium transition-all border border-gray-700 hover:border-gray-600">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
@@ -94,10 +94,6 @@
             </div>
             
             <div class="flex items-center gap-4">
-                 <button id="historyBtn" onclick="toggleHistoryModal()" class="hidden text-sm bg-gray-800 hover:bg-gray-700 border border-gray-700 px-3 py-2 rounded-lg transition-colors text-gray-300 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    Histórico
-                </button>
                 <div id="userBadge" class="hidden flex items-center gap-2 text-sm text-indigo-400 font-semibold border border-indigo-500/30 px-3 py-1.5 rounded-full transition-all hover:bg-indigo-900/20 cursor-pointer" onclick="toggleProfileModal()" title="Ver Perfil">
                     <!-- Username injected via JS -->
                 </div>
@@ -225,7 +221,6 @@
                 <button id="generateBtn" onclick="generateQR()" class="w-full mt-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/20 transform transition-all hover:scale-[1.02] active:scale-[0.98] border border-white/10 text-lg tracking-wide uppercase">
                     Gerar QR Code
                 </button>
-                <p id="limitCounter" class="text-center text-xs text-gray-500 mt-3 font-mono">...</p>
             </div>
 
             <!-- Right Panel: Preview -->
@@ -256,7 +251,7 @@
             <button onclick="closeModal('loginModal')" class="absolute top-5 right-5 text-gray-500 hover:text-white"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
             
             <h2 class="text-2xl font-bold text-center mb-2">Acesse sua Conta</h2>
-            <p class="text-gray-400 text-center text-sm mb-8">Desbloqueie Pix, Imagens, Histórico e 50 QR Codes/dia.</p>
+            <p class="text-gray-400 text-center text-sm mb-8">Desbloqueie Pix e QR Codes de Imagem.</p>
 
             <button onclick="loginWithGoogle()" class="w-full bg-white hover:bg-gray-100 text-gray-900 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-3 transition-colors mb-6 shadow-lg">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google">Continuar com Google
@@ -278,7 +273,7 @@
                 <button onclick="handleEmailAuth(false)" class="flex-1 bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-bold transition-colors">Entrar</button>
                 <button onclick="handleEmailAuth(true)" class="flex-1 border border-indigo-600 text-indigo-400 hover:bg-indigo-900/30 py-3 rounded-xl font-bold transition-colors">Criar</button>
             </div>
-            <p class="text-center mt-4 text-xs text-gray-500 cursor-pointer hover:text-gray-300 underline" onclick="openResetFlow()">Esqueci minha senha</p>
+            <p class="text-center mt-4 text-xs text-gray-500 cursor-pointer hover:text-gray-300 underline" onclick="openResetFlow()">Esqueci minha senha / Adicionar Senha</p>
         </div>
     </div>
 
@@ -286,30 +281,46 @@
     <div id="resetModal" class="fixed inset-0 bg-black/80 z-[110] hidden items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-gray-800 rounded-3xl p-8 max-w-sm w-full border border-gray-700 shadow-2xl relative">
             <button onclick="closeModal('resetModal')" class="absolute top-5 right-5 text-gray-500 hover:text-white"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 class="text-xl font-bold mb-2">Recuperar Acesso</h3>
-            <p class="text-sm text-gray-400 mb-4">Enviaremos um código/link de verificação para o seu email.</p>
+            <h3 class="text-xl font-bold mb-2">Recuperar / Criar Senha</h3>
+            <p class="text-sm text-gray-400 mb-4">Enviaremos um email com um link contendo um código de verificação.</p>
             <input type="email" id="resetEmailInput" placeholder="Digite seu email" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 mb-4 text-white focus:border-indigo-500 outline-none">
-            <button onclick="sendResetLink()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold">Enviar Link de Redefinição</button>
-            <p class="text-xs text-gray-500 mt-4 text-center">Após clicar no link do email, você poderá definir uma nova senha.</p>
+            <button onclick="sendResetLink()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold mb-3">Enviar Código por Email</button>
+            
+            <div class="border-t border-gray-700 pt-3 mt-3">
+                <p class="text-xs text-gray-400 mb-2">Já recebeu o email?</p>
+                <button onclick="openManualCodeEntry()" class="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg text-sm font-semibold">Tenho um Código (Colar)</button>
+            </div>
         </div>
     </div>
 
-    <!-- Confirm New Password Modal (triggered by URL link) -->
+    <!-- Manual Code Entry & New Password Modal -->
     <div id="newPasswordModal" class="fixed inset-0 bg-black/80 z-[120] hidden items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-gray-800 rounded-3xl p-8 max-w-sm w-full border border-gray-700 shadow-2xl relative">
-            <h3 class="text-xl font-bold mb-2 text-center text-green-400">Nova Senha</h3>
-            <p class="text-sm text-gray-400 mb-4 text-center">Defina sua nova senha segura.</p>
+            <button onclick="closeModal('newPasswordModal')" class="absolute top-5 right-5 text-gray-500 hover:text-white"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            
+            <h3 class="text-xl font-bold mb-2 text-center text-green-400">Definir Senha</h3>
+            <p class="text-xs text-gray-400 mb-4 text-center leading-relaxed">
+                Cole o código que está no link do seu email (parametro <b>oobCode</b>) ou clique direto no link do email.
+            </p>
+            
+            <!-- Code Input -->
+            <label class="text-xs text-gray-500 font-bold uppercase mb-1 block">Código de Verificação</label>
+            <input type="text" id="manualOobCode" placeholder="Cole o código aqui..." class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 mb-3 text-white focus:border-indigo-500 outline-none font-mono text-xs">
+
+            <!-- Password Input -->
+            <label class="text-xs text-gray-500 font-bold uppercase mb-1 block">Nova Senha</label>
             <div class="relative mb-4">
-                <input type="password" id="newPassInput" placeholder="Nova Senha" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 pr-10 text-white focus:border-indigo-500 outline-none">
+                <input type="password" id="newPassInput" placeholder="******" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 pr-10 text-white focus:border-indigo-500 outline-none">
                 <button onclick="togglePassVis('newPassInput', this)" class="absolute right-3 top-3 text-gray-500 hover:text-white">👁️</button>
             </div>
+            
             <button onclick="confirmNewPassword()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold">Salvar Nova Senha</button>
         </div>
     </div>
 
     <!-- Profile & Settings Modal -->
     <div id="profileModal" class="fixed inset-0 bg-black/80 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-gray-800 rounded-3xl p-6 max-w-md w-full border border-gray-700 shadow-2xl relative h-[80vh] flex flex-col">
+        <div class="bg-gray-800 rounded-3xl p-6 max-w-md w-full border border-gray-700 shadow-2xl relative h-[auto] max-h-[80vh] flex flex-col">
             <button onclick="closeModal('profileModal')" class="absolute top-5 right-5 text-gray-500 hover:text-white"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
             
             <div class="flex items-center gap-4 mb-6">
@@ -331,14 +342,8 @@
                 <!-- General Tab -->
                 <div id="tab-general" class="profile-section">
                     <div class="bg-gray-700/30 p-4 rounded-xl border border-gray-700/50">
-                        <p class="text-sm text-gray-300 mb-2">QR Codes Hoje</p>
-                        <div class="flex justify-between items-end">
-                            <span id="profLimit" class="text-2xl font-bold text-white">0/50</span>
-                            <span class="text-xs text-gray-500">Reseta às 00h</span>
-                        </div>
-                        <div class="w-full bg-gray-700 h-2 rounded-full mt-2 overflow-hidden">
-                            <div id="profBar" class="bg-indigo-500 h-full w-0 transition-all duration-500"></div>
-                        </div>
+                        <p class="text-sm text-gray-300">Modo Ilimitado Ativo</p>
+                        <p class="text-xs text-gray-500 mt-1">Você tem acesso total aos recursos Premium.</p>
                     </div>
                     
                     <button onclick="verifyEmail()" id="btnVerifyEmail" class="w-full mt-4 bg-indigo-900/40 border border-indigo-500/30 text-indigo-300 py-3 rounded-xl font-semibold hidden">
@@ -355,33 +360,16 @@
                         <button onclick="updateUserEmail()" class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded transition-colors w-full">Atualizar Email</button>
                     </div>
 
-                    <!-- Add Password (if missing) or Change -->
+                    <!-- Add/Change Password Trigger -->
                     <div class="bg-gray-900 p-4 rounded-xl border border-gray-700">
-                        <label class="text-xs text-gray-400 uppercase font-bold mb-2 block" id="pwdLabel">Adicionar/Alterar Senha</label>
-                        <div class="relative mb-2">
-                            <input type="password" id="newProfilePass" placeholder="Nova Senha" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 pr-8 text-sm text-white">
-                            <button onclick="togglePassVis('newProfilePass', this)" class="absolute right-2 top-2 text-gray-500 hover:text-white text-xs">👁️</button>
-                        </div>
-                        <button onclick="updateUserPassword()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded transition-colors w-full">Salvar Senha</button>
+                        <label class="text-xs text-gray-400 uppercase font-bold mb-2 block">Senha</label>
+                        <p class="text-xs text-gray-500 mb-3">Para segurança, enviamos um código para redefinição.</p>
+                        <button onclick="triggerPasswordResetFromProfile()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded transition-colors w-full">Definir Nova Senha</button>
                     </div>
                 </div>
             </div>
 
             <button onclick="logout()" class="mt-4 w-full border border-red-500/30 text-red-400 hover:bg-red-900/20 py-3 rounded-xl font-semibold transition-colors">Sair da Conta</button>
-        </div>
-    </div>
-
-    <!-- History Modal -->
-    <div id="historyModal" class="fixed inset-0 bg-black/80 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-gray-800 rounded-3xl p-6 max-w-2xl w-full border border-gray-700 shadow-2xl flex flex-col h-[80vh]">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold flex items-center gap-2">📜 Histórico <span class="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300 font-normal">Últimos 20</span></h2>
-                <button onclick="closeModal('historyModal')" class="text-gray-500 hover:text-white"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
-            </div>
-            
-            <div id="historyList" class="flex-grow overflow-y-auto space-y-3 pr-2">
-                <p class="text-center text-gray-500 mt-10">Carregando histórico...</p>
-            </div>
         </div>
     </div>
 
@@ -413,14 +401,9 @@
             messagingSenderId: "303212642438",
             appId: "1:303212642438:web:65ef833e4ecacd00b21107"
         };
-        const APP_ID_DB = 'qr-master-app';
-        const MAX_GUEST_QR = 2;
-        const MAX_USER_QR_DAILY = 50;
 
         let auth, db, googleProvider, currentUser = null;
         let qrCodeObj = null;
-        let guestCount = parseInt(localStorage.getItem('guest_qr_count') || '0');
-        let dailyCount = 0;
 
         // INIT
         try {
@@ -459,74 +442,24 @@
             const oobCode = urlParams.get('oobCode');
 
             if (mode === 'resetPassword' && oobCode) {
-                // Show New Password Modal
+                // Pre-fill the code for the user
+                document.getElementById('manualOobCode').value = oobCode;
                 document.getElementById('newPasswordModal').classList.remove('hidden');
                 document.getElementById('newPasswordModal').classList.add('flex');
-                window.oobCode = oobCode; // Store globally for submit
             }
         }
 
         // AUTH STATE
         onAuthStateChanged(auth, async (user) => {
             currentUser = user;
-            if (user && !user.isAnonymous) {
-                await checkDailyLimit(user.uid);
-            }
             updateUI(user);
         });
-
-        // ------------------------------------------------------------
-        // BUSINESS LOGIC
-        // ------------------------------------------------------------
-        
-        // Daily Limit Check
-        async function checkDailyLimit(uid) {
-            const today = new Date().toISOString().split('T')[0];
-            const ref = doc(db, 'artifacts', APP_ID_DB, 'users', uid, 'stats', 'usage');
-            
-            try {
-                const snap = await getDoc(ref);
-                if (snap.exists()) {
-                    const data = snap.data();
-                    if (data.date === today) {
-                        dailyCount = data.count || 0;
-                    } else {
-                        // Reset for new day
-                        dailyCount = 0;
-                        await setDoc(ref, { date: today, count: 0 }, { merge: true });
-                    }
-                } else {
-                    dailyCount = 0;
-                    await setDoc(ref, { date: today, count: 0 }, { merge: true });
-                }
-            } catch (e) { console.log("Stats fetch error", e); }
-        }
-
-        async function logQR(type, content) {
-            if (!currentUser || currentUser.isAnonymous) return;
-            
-            // 1. Increment Count
-            const today = new Date().toISOString().split('T')[0];
-            const statsRef = doc(db, 'artifacts', APP_ID_DB, 'users', currentUser.uid, 'stats', 'usage');
-            await setDoc(statsRef, { date: today, count: increment(1) }, { merge: true });
-            dailyCount++;
-
-            // 2. Add to History
-            const historyCol = collection(db, 'artifacts', APP_ID_DB, 'users', currentUser.uid, 'history');
-            await addDoc(historyCol, {
-                type: type,
-                content: content,
-                createdAt: serverTimestamp()
-            });
-            updateUI(currentUser);
-        }
 
         // ------------------------------------------------------------
         // AUTH ACTIONS
         // ------------------------------------------------------------
         window.loginWithGoogle = async () => {
             try {
-                // If anon, we might want to link, but popup link is complex. Just sign in.
                 const res = await signInWithPopup(auth, googleProvider);
                 window.closeModal('loginModal');
                 showToast(`Bem-vindo, ${res.user.displayName}!`, "success");
@@ -540,7 +473,6 @@
 
             try {
                 if (isRegister) {
-                    // Try to link if anonymous
                     if (currentUser && currentUser.isAnonymous) {
                          const cred = EmailAuthProvider.credential(email, pass);
                          await linkWithCredential(currentUser, cred);
@@ -562,15 +494,23 @@
             }
         };
 
-        // Reset Password Flow (Email Link)
+        // Reset Password Flow (Email Link + Manual Code)
         window.openResetFlow = () => {
             window.closeModal('loginModal');
             document.getElementById('resetModal').classList.remove('hidden');
             document.getElementById('resetModal').classList.add('flex');
-            // Pre-fill if known
             if (document.getElementById('emailInput').value) {
                 document.getElementById('resetEmailInput').value = document.getElementById('emailInput').value;
             }
+        };
+        
+        window.triggerPasswordResetFromProfile = () => {
+             window.closeModal('profileModal');
+             document.getElementById('resetModal').classList.remove('hidden');
+             document.getElementById('resetModal').classList.add('flex');
+             if(currentUser && currentUser.email) {
+                 document.getElementById('resetEmailInput').value = currentUser.email;
+             }
         };
 
         window.sendResetLink = async () => {
@@ -578,26 +518,41 @@
             if (!email) return showToast("Digite o email", "error");
             try {
                 await sendPasswordResetEmail(auth, email);
-                showToast("Link enviado! Verifique seu email (e spam).", "success");
+                showToast("Código enviado para seu email!", "success");
+                // Open the code entry modal immediately for user convenience
                 window.closeModal('resetModal');
+                window.openManualCodeEntry();
             } catch (e) { showToast("Erro: " + e.message, "error"); }
         };
 
-        // Confirm New Password (from Link)
+        window.openManualCodeEntry = () => {
+            window.closeModal('resetModal');
+            document.getElementById('newPasswordModal').classList.remove('hidden');
+            document.getElementById('newPasswordModal').classList.add('flex');
+        };
+
+        // Confirm New Password (Logic for both Link & Manual Code)
         window.confirmNewPassword = async () => {
             const newPass = document.getElementById('newPassInput').value;
+            // Get code from input (pasted manually) or URL param
+            const code = document.getElementById('manualOobCode').value || new URLSearchParams(window.location.search).get('oobCode');
+            
             if (!newPass || newPass.length < 6) return showToast("Senha deve ter 6+ dígitos", "error");
-            if (!window.oobCode) return showToast("Código inválido", "error");
+            if (!code) return showToast("Código de verificação ausente", "error");
 
             try {
-                await confirmPasswordReset(auth, window.oobCode, newPass);
+                await confirmPasswordReset(auth, code, newPass);
                 showToast("Senha redefinida com sucesso! Faça login.", "success");
                 document.getElementById('newPasswordModal').classList.add('hidden');
                 document.getElementById('loginModal').classList.remove('hidden');
                 document.getElementById('loginModal').classList.add('flex');
+                
                 // Clean URL
                 window.history.replaceState({}, document.title, window.location.pathname);
-            } catch (e) { showToast("Erro ao redefinir: " + e.message, "error"); }
+            } catch (e) { 
+                console.error(e);
+                showToast("Código inválido ou expirado.", "error"); 
+            }
         };
 
         // Security Settings
@@ -611,25 +566,6 @@
             } catch (e) { showToast("Erro: Faça login novamente para confirmar.", "error"); }
         };
 
-        window.updateUserPassword = async () => {
-            const newPass = document.getElementById('newProfilePass').value;
-            if (!newPass) return;
-            
-            try {
-                if (currentUser.isAnonymous) {
-                    // Convert Anon to Permanent
-                    const email = prompt("Para salvar a senha, digite um email:");
-                    if(!email) return;
-                    const cred = EmailAuthProvider.credential(email, newPass);
-                    await linkWithCredential(currentUser, cred);
-                    showToast("Conta criada e senha salva!", "success");
-                } else {
-                    await updatePassword(currentUser, newPass);
-                    showToast("Senha alterada!", "success");
-                }
-            } catch (e) { showToast("Erro: " + e.message, "error"); }
-        };
-
         window.verifyEmail = async () => {
             if(!currentUser) return;
             try {
@@ -641,83 +577,13 @@
         window.logout = () => signOut(auth).then(() => window.location.reload());
 
         // ------------------------------------------------------------
-        // HISTORY
-        // ------------------------------------------------------------
-        window.toggleHistoryModal = async () => {
-            const el = document.getElementById('historyModal');
-            if (el.classList.contains('hidden')) {
-                el.classList.remove('hidden');
-                el.classList.add('flex');
-                await loadHistory();
-            } else {
-                el.classList.add('hidden');
-            }
-        };
-
-        async function loadHistory() {
-            const list = document.getElementById('historyList');
-            list.innerHTML = '<p class="text-center text-gray-500 mt-4">Carregando...</p>';
-            
-            if(!currentUser || currentUser.isAnonymous) {
-                 list.innerHTML = '<p class="text-center text-gray-500 mt-4">Faça login para ver o histórico.</p>';
-                 return;
-            }
-
-            try {
-                const q = query(
-                    collection(db, 'artifacts', APP_ID_DB, 'users', currentUser.uid, 'history'),
-                    orderBy('createdAt', 'desc'),
-                    limit(20)
-                );
-                const snapshot = await getDocs(q);
-                
-                if (snapshot.empty) {
-                    list.innerHTML = '<p class="text-center text-gray-500 mt-4">Nenhum QR Code gerado ainda.</p>';
-                    return;
-                }
-
-                list.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const d = doc.data();
-                    const date = d.createdAt ? d.createdAt.toDate().toLocaleString('pt-BR') : 'Data desconhecida';
-                    const content = d.content.length > 30 ? d.content.substring(0,30) + '...' : d.content;
-                    
-                    const item = document.createElement('div');
-                    item.className = 'bg-gray-700 p-3 rounded-xl border border-gray-600 flex justify-between items-center';
-                    item.innerHTML = `
-                        <div>
-                            <span class="text-xs font-bold bg-indigo-900/50 text-indigo-300 px-2 py-0.5 rounded uppercase">${d.type}</span>
-                            <p class="text-sm text-gray-200 mt-1 font-mono">${content}</p>
-                            <p class="text-[10px] text-gray-400">${date}</p>
-                        </div>
-                        <button onclick="reuseQR('${d.type}', '${encodeURIComponent(d.content)}')" class="text-indigo-400 hover:text-white text-xs border border-indigo-500/30 px-2 py-1 rounded">Reutilizar</button>
-                    `;
-                    list.appendChild(item);
-                });
-            } catch (e) { list.innerHTML = `<p class="text-red-400 text-center">${e.message}</p>`; }
-        }
-
-        window.reuseQR = (type, content) => {
-            const decoded = decodeURIComponent(content);
-            window.switchTab(type);
-            window.closeModal('historyModal');
-            
-            // Populate fields based on simplistic logic (would need parsing for complex Wifi/Pix)
-            // For now, just URL/Text support reuse easily
-            if(type === 'url') document.getElementById('url-val').value = decoded;
-            if(type === 'text') document.getElementById('text-val').value = decoded;
-            // Wifi/Pix parsing from string is complex, simplified for demo
-            showToast("Dados carregados para edição.", "success");
-        };
-
-        // ------------------------------------------------------------
         // UI HELPERS
         // ------------------------------------------------------------
         window.togglePassVis = (id, btn) => {
             const inp = document.getElementById(id);
             if(inp.type === "password") {
                 inp.type = "text";
-                btn.innerText = "🔒"; // Locked/Visible icon metaphor
+                btn.innerText = "🔒"; 
             } else {
                 inp.type = "password";
                 btn.innerText = "👁️";
@@ -747,8 +613,6 @@
             const isGuest = !user || user.isAnonymous;
             const badge = document.getElementById('userBadge');
             const authBtn = document.getElementById('authBtn');
-            const historyBtn = document.getElementById('historyBtn');
-            const limitCounter = document.getElementById('limitCounter');
             
             // Header
             if (!isGuest) {
@@ -756,12 +620,10 @@
                 authBtn.onclick = window.logout;
                 badge.innerText = user.displayName || user.email?.split('@')[0] || 'Visitante';
                 badge.classList.remove('hidden');
-                historyBtn.classList.remove('hidden');
             } else {
                 authBtn.innerText = "Entrar";
                 authBtn.onclick = () => window.toggleModal('loginModal');
                 badge.classList.add('hidden');
-                historyBtn.classList.add('hidden');
             }
 
             // Locks
@@ -770,23 +632,10 @@
             document.getElementById('logoInput').disabled = !isPrem;
             document.querySelectorAll('.premium-lock').forEach(el => el.classList.toggle('hidden', isPrem));
 
-            // Counter
-            if (isGuest) {
-                limitCounter.innerText = `Gerados: ${guestCount}/${MAX_GUEST_QR} (Visitante)`;
-                limitCounter.className = "text-center text-xs mt-3 font-mono text-gray-500";
-                document.getElementById('generateBtn').disabled = guestCount >= MAX_GUEST_QR;
-                if(guestCount >= MAX_GUEST_QR) document.getElementById('generateBtn').innerText = "Limite Atingido (Login Necessário)";
-            } else {
-                limitCounter.innerText = `Hoje: ${dailyCount}/${MAX_USER_QR_DAILY} (Premium)`;
-                limitCounter.className = "text-center text-xs mt-3 font-mono text-green-400 font-bold";
-                document.getElementById('generateBtn').disabled = dailyCount >= MAX_USER_QR_DAILY;
-                if(dailyCount >= MAX_USER_QR_DAILY) document.getElementById('generateBtn').innerText = "Limite Diário Atingido";
-                
+            if (!isGuest) {
                 // Profile Data
                 document.getElementById('profileName').innerText = user.displayName || 'Usuário';
                 document.getElementById('profileEmail').innerText = user.email || 'Conta Anônima';
-                document.getElementById('profLimit').innerText = `${dailyCount}/${MAX_USER_QR_DAILY}`;
-                document.getElementById('profBar').style.width = `${(dailyCount/MAX_USER_QR_DAILY)*100}%`;
 
                 // Verification Button
                 const vStatus = document.getElementById('verificationStatus');
@@ -805,7 +654,7 @@
         }
 
         // ------------------------------------------------------------
-        // CORE QR LOGIC (Modified to support logging)
+        // CORE QR LOGIC
         // ------------------------------------------------------------
         function initQR() {
             qrCodeObj = new QRCodeStyling({
@@ -820,11 +669,13 @@
 
         window.generateQR = async () => {
             const isGuest = !currentUser || currentUser.isAnonymous;
-            if (isGuest && guestCount >= MAX_GUEST_QR) return window.toggleModal('loginModal');
-            if (!isGuest && dailyCount >= MAX_USER_QR_DAILY) return showToast("Limite diário de 50 atingido.", "error");
+            
+            // Lock Premium Features (Pix/Image) but NO numerical limits
+            if (isGuest && (window.currentType === 'pix' || window.currentType === 'image')) {
+                 return window.toggleModal('loginModal');
+            }
 
             let data = "";
-            let rawContent = ""; // For history
             const baseUrl = window.location.origin + window.location.pathname;
 
             try {
@@ -832,41 +683,34 @@
                     const val = document.getElementById('url-val').value;
                     if(!val) throw new Error("Insira uma URL.");
                     data = val;
-                    rawContent = val;
                 } else if (window.currentType === 'text') {
                     const val = document.getElementById('text-val').value;
                     if(!val) throw new Error("Insira um texto.");
                     data = `${baseUrl}?msg=${encodeURIComponent(val)}`;
-                    rawContent = val;
                 } else if (window.currentType === 'image') {
                     if(isGuest) throw new Error("Login necessário.");
                     const val = document.getElementById('image-val').value;
                     if(!val) throw new Error("Insira a URL.");
                     data = `${baseUrl}?img=${encodeURIComponent(val)}`;
-                    rawContent = "Imagem: " + val;
                 } else if (window.currentType === 'wifi') {
                     const ssid = document.getElementById('wifi-ssid').value;
                     const pass = document.getElementById('wifi-pass').value;
                     const type = document.getElementById('wifi-type').value;
                     if(!ssid) throw new Error("SSID obrigatório.");
                     data = `WIFI:T:${type};S:${ssid};P:${pass};;`;
-                    rawContent = `WiFi: ${ssid}`;
                 } else if (window.currentType === 'pix') {
                     if(isGuest) throw new Error("Login necessário.");
                     const key = document.getElementById('pix-key').value;
                     const name = document.getElementById('pix-name').value;
                     const city = document.getElementById('pix-city').value;
                     if(!key || !name || !city) throw new Error("Preencha Chave, Nome e Cidade.");
-                    // Simplified Pix payload for brevity, full logic assumed from previous file or needs re-insertion
-                    // Re-inserting helper below
                     data = generatePixPayload(key, name, city, document.getElementById('pix-amount').value);
-                    rawContent = `Pix: ${key} (${name})`;
                 }
 
                 const logoFile = document.getElementById('logoInput').files[0];
                 const updateQR = (img) => {
                     qrCodeObj.update({ data: data, image: img });
-                    finishGen(isGuest, window.currentType, rawContent);
+                    showToast("QR Code Gerado!", "success");
                 };
 
                 if (logoFile && !isGuest) {
@@ -879,17 +723,6 @@
 
             } catch (e) { showToast(e.message, "error"); }
         };
-
-        async function finishGen(isGuest, type, content) {
-            if (isGuest) {
-                guestCount++;
-                localStorage.setItem('guest_qr_count', guestCount);
-            } else {
-                await logQR(type, content);
-            }
-            updateUI(currentUser);
-            showToast("QR Code Gerado!", "success");
-        }
 
         // Pix Helper
         function generatePixPayload(key, name, city, amount, txid = '***') {
@@ -939,7 +772,6 @@
             });
             
             // Activate current button
-            // Find button that calls switchTab with this type
             const activeBtn = Array.from(document.querySelectorAll('.type-tab')).find(b => 
                 b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${t}'`)
             );
