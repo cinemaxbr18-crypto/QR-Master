@@ -309,22 +309,36 @@
             <button onclick="UIManager.closeModal('newPasswordModal')" class="absolute top-5 right-5 text-gray-500 hover:text-white"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
             
             <h3 class="text-xl font-bold mb-2 text-center text-green-400">Definir Nova Senha</h3>
-            <p class="text-xs text-gray-400 mb-4 text-center leading-relaxed">
-                Insira o código enviado por email (parametro <b>oobCode</b> do link) ou clique direto no link do email.
+            
+            <!-- Loading Indicator for Automatic Verification -->
+            <div id="resetLoader" class="hidden flex-col items-center justify-center py-4">
+                <svg class="animate-spin h-8 w-8 text-indigo-500 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="text-xs text-gray-400 animate-pulse">Verificando link de segurança...</p>
+            </div>
+
+            <!-- Context Info -->
+            <p id="resetInfoText" class="text-xs text-gray-400 mb-4 text-center leading-relaxed">
+                Insira o código enviado por email ou clique direto no link do email.
             </p>
             
-            <!-- Code Input -->
-            <label class="text-xs text-gray-500 font-bold uppercase mb-1 block">Código de Verificação</label>
-            <input type="text" id="manualOobCode" placeholder="Cole o código aqui..." class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 mb-3 text-white focus:border-indigo-500 outline-none font-mono text-xs">
-
-            <!-- Password Input -->
-            <label class="text-xs text-gray-500 font-bold uppercase mb-1 block">Nova Senha</label>
-            <div class="relative mb-4">
-                <input type="password" id="newPassInput" placeholder="******" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 pr-10 text-white focus:border-indigo-500 outline-none">
-                <button onclick="UIManager.togglePassVis('newPassInput', this)" class="absolute right-3 top-3 text-gray-500 hover:text-white">👁️</button>
+            <!-- Code Input (Manual) -->
+            <div id="manualCodeSection">
+                <label class="text-xs text-gray-500 font-bold uppercase mb-1 block">Código de Verificação</label>
+                <input type="text" id="manualOobCode" placeholder="Cole o código aqui..." class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 mb-3 text-white focus:border-indigo-500 outline-none font-mono text-xs">
             </div>
-            
-            <button onclick="AuthManager.confirmNewPassword()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold">Salvar Nova Senha</button>
+
+            <!-- Password Input (Hidden until verified or manual code entered) -->
+            <div id="newPassSection">
+                <label class="text-xs text-gray-500 font-bold uppercase mb-1 block">Nova Senha</label>
+                <div class="relative mb-4">
+                    <input type="password" id="newPassInput" placeholder="******" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 pr-10 text-white focus:border-indigo-500 outline-none">
+                    <button onclick="UIManager.togglePassVis('newPassInput', this)" class="absolute right-3 top-3 text-gray-500 hover:text-white">👁️</button>
+                </div>
+                <button onclick="AuthManager.confirmNewPassword()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold">Salvar Nova Senha</button>
+            </div>
         </div>
     </div>
 
@@ -396,7 +410,8 @@
             getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, 
             createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithCustomToken, 
             signInAnonymously, sendPasswordResetEmail, sendEmailVerification, updateProfile,
-            updateEmail, updatePassword, linkWithCredential, EmailAuthProvider, confirmPasswordReset
+            updateEmail, updatePassword, linkWithCredential, EmailAuthProvider, confirmPasswordReset,
+            verifyPasswordResetCode, applyActionCode
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -578,42 +593,42 @@
                     });
 
                     // Tratamento de URL (Reset de Senha / Verificação)
-                    AuthManager.checkUrlActions();
+                    // Agora verifica ANTES de tentar logar anonimamente para evitar conflitos
+                    const hasAction = await AuthManager.checkUrlActions();
 
                     // Login Inicial (Guest ou Token) - Lógica de Fallback Robusta
-                    try {
-                        let loginSuccess = false;
+                    // Só tenta login anônimo se NÃO estivermos processando uma ação de URL (como resetar senha)
+                    if (!hasAction) {
+                        try {
+                            let loginSuccess = false;
 
-                        // 1. Tenta usar o Token Customizado (se disponível)
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            try {
-                                await signInWithCustomToken(auth, __initial_auth_token);
-                                loginSuccess = true;
-                            } catch (e) {
-                                console.warn("Aviso: Token customizado falhou. Tentando acesso anónimo.", e);
-                            }
-                        }
-
-                        // 2. Se não logou e não tem utilizador ativo, tenta Anónimo
-                        // Adicionado try-catch específico para erro de restrição administrativa
-                        if (!loginSuccess && !auth.currentUser) {
-                            try {
-                                await signInAnonymously(auth);
-                            } catch (anonError) {
-                                if (anonError.code === 'auth/admin-restricted-operation') {
-                                    console.warn("Autenticação Anônima desativada no console. App rodando em modo Visitante sem Auth.");
-                                    // Não lançamos erro, apenas deixamos o currentUser como null.
-                                    // A UI já sabe lidar com isso (mostrando botões de login).
-                                } else {
-                                    throw anonError; // Outros erros repassamos
+                            // 1. Tenta usar o Token Customizado (se disponível)
+                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                try {
+                                    await signInWithCustomToken(auth, __initial_auth_token);
+                                    loginSuccess = true;
+                                } catch (e) {
+                                    console.warn("Aviso: Token customizado falhou. Tentando acesso anónimo.", e);
                                 }
                             }
-                        }
-                    } catch (error) {
-                        console.error("Erro na autenticação inicial:", error);
-                        // Apenas mostra toast se for um erro crítico que não seja o admin-restricted
-                        if(error.code !== 'auth/admin-restricted-operation') {
-                            UIManager.showToast("Modo offline / erro de autenticação.", "error");
+
+                            // 2. Se não logou e não tem utilizador ativo, tenta Anónimo
+                            if (!loginSuccess && !auth.currentUser) {
+                                try {
+                                    await signInAnonymously(auth);
+                                } catch (anonError) {
+                                    if (anonError.code === 'auth/admin-restricted-operation') {
+                                        console.warn("Autenticação Anônima desativada no console. App rodando em modo Visitante sem Auth.");
+                                    } else {
+                                        throw anonError; 
+                                    }
+                                }
+                            }
+                        } catch (error) {
+                            console.error("Erro na autenticação inicial:", error);
+                            if(error.code !== 'auth/admin-restricted-operation') {
+                                UIManager.showToast("Modo offline / erro de autenticação.", "error");
+                            }
                         }
                     }
 
@@ -626,17 +641,66 @@
                 }
             },
 
-            checkUrlActions: () => {
+            checkUrlActions: async () => {
                 const params = new URLSearchParams(window.location.search);
                 const mode = params.get('mode');
                 const oobCode = params.get('oobCode');
 
-                if (mode === 'resetPassword' && oobCode) {
-                    document.getElementById('manualOobCode').value = oobCode;
+                if (!mode || !oobCode) return false;
+
+                if (mode === 'resetPassword') {
+                    // Prepara UI para Reset
                     UIManager.toggleModal('newPasswordModal');
-                    // Limpa URL
+                    
+                    // Esconde entrada manual, mostra loading
+                    document.getElementById('manualCodeSection').classList.add('hidden');
+                    document.getElementById('resetLoader').classList.remove('hidden');
+                    document.getElementById('resetLoader').classList.add('flex');
+                    document.getElementById('resetInfoText').innerText = "Verificando validade do link...";
+                    document.getElementById('newPassSection').classList.add('hidden');
+
+                    try {
+                        // Verifica o código usando a API do Firebase
+                        const email = await verifyPasswordResetCode(auth, oobCode);
+                        
+                        // SUCESSO: Mostra campo de nova senha
+                        document.getElementById('resetLoader').classList.add('hidden');
+                        document.getElementById('resetLoader').classList.remove('flex');
+                        document.getElementById('resetInfoText').innerHTML = `Redefinir senha para: <b class="text-white">${email}</b>`;
+                        document.getElementById('newPassSection').classList.remove('hidden');
+                        
+                        // Preenche o código hidden para o submit funcionar
+                        document.getElementById('manualOobCode').value = oobCode;
+                        
+                    } catch (e) {
+                        // ERRO: Mostra erro e fallback manual
+                        document.getElementById('resetLoader').classList.add('hidden');
+                        document.getElementById('resetLoader').classList.remove('flex');
+                        document.getElementById('resetInfoText').innerHTML = `<span class="text-red-400 font-bold">O link expirou ou é inválido.</span><br>Tente inserir o código manualmente se o tiver.`;
+                        document.getElementById('manualCodeSection').classList.remove('hidden');
+                        document.getElementById('newPassSection').classList.remove('hidden'); // Deixa tentar manual
+                    }
+                    
+                    // Limpa URL para não rodar novamente no refresh
                     window.history.replaceState({}, document.title, window.location.pathname);
+                    return true;
+
+                } else if (mode === 'verifyEmail') {
+                    // Tratamento de Verificação de Email
+                    UIManager.showToast("Verificando email...", "info");
+                    try {
+                        await applyActionCode(auth, oobCode);
+                        UIManager.showToast("Email verificado com sucesso! 🎉", "success");
+                        // Dá um tempo para o usuário ver a mensagem antes de recarregar (opcional)
+                        setTimeout(() => { if (auth.currentUser) window.location.reload(); }, 2000);
+                    } catch (e) {
+                        UIManager.showToast("Erro ao verificar email. Link expirado?", "error");
+                    }
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    return true;
                 }
+
+                return false;
             },
 
             loginWithGoogle: async () => {
@@ -701,13 +765,19 @@
                     await sendPasswordResetEmail(auth, email);
                     UIManager.showToast("Email enviado! Verifique sua caixa de entrada.", "success");
                     UIManager.closeModal('resetModal');
-                    UIManager.toggleModal('newPasswordModal'); // Abre para inserir código caso necessário
+                    // Não abre o modal de new password, pois o user tem que clicar no email
                 } catch (e) { UIManager.showToast("Erro: " + e.message, "error"); }
             },
             
             openManualCodeEntry: () => {
                 UIManager.closeModal('resetModal');
                 UIManager.toggleModal('newPasswordModal');
+                // Reseta UI para modo manual
+                document.getElementById('manualCodeSection').classList.remove('hidden');
+                document.getElementById('newPassSection').classList.remove('hidden');
+                document.getElementById('resetLoader').classList.add('hidden');
+                document.getElementById('resetLoader').classList.remove('flex');
+                document.getElementById('resetInfoText').innerText = "Insira o código manualmente.";
             },
 
             confirmNewPassword: async () => {
@@ -715,11 +785,11 @@
                 const code = document.getElementById('manualOobCode').value;
                 
                 if (!newPass || newPass.length < 6) return UIManager.showToast("Senha deve ter 6+ dígitos", "error");
-                if (!code) return UIManager.showToast("Insira o código de verificação", "error");
+                if (!code) return UIManager.showToast("Link inválido ou código ausente.", "error");
 
                 try {
                     await confirmPasswordReset(auth, code, newPass);
-                    UIManager.showToast("Senha alterada! Faça login.", "success");
+                    UIManager.showToast("Senha alterada com sucesso! Faça login.", "success");
                     UIManager.closeModal('newPasswordModal');
                     UIManager.toggleModal('loginModal');
                 } catch (e) { 
