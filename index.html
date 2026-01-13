@@ -1,58 +1,59 @@
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
-     <!-- logo (ícone do site / aba do navegador)-->
-    <link rel="icon" type="image/png" href="logo.png">
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="QR Master - Gerador de QR Code Profissional.">
+    <meta name="description" content="QR Master - Gerador de QR Code Profissional e Seguro.">
     <title>QR Master - Gerador Premium</title>
     
-    <!-- ==========================================
-         DEPENDENCIES (CDNs)
-         ========================================== -->
+    <!-- Ícone -->
+    <link rel="icon" type="image/png" href="logo.png">
+
+    <!-- DEPENDÊNCIAS (CDNs) -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fontes -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- QR Code Library -->
     <script type="text/javascript" src="https://unpkg.com/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
     
-    <!-- ==========================================
-         STYLES
-         ========================================== -->
+    <!-- ESTILOS -->
     <style>
+        :root { --primary-color: #4F46E5; --secondary-color: #9333EA; }
         body { font-family: 'Outfit', sans-serif; }
         
-        /* Glassmorphism */
+        /* Glassmorphism & UI Utilities */
         .glass-panel {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
-
+        
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
         
-        /* Animations */
+        /* Animações */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
         
+        /* Inputs de arquivo customizados */
         input[type="file"]::file-selector-button { display: none; }
     </style>
 </head>
 <body class="bg-gray-950 text-white min-h-screen flex flex-col relative overflow-x-hidden selection:bg-indigo-500 selection:text-white">
 
-    <!-- Background -->
+    <!-- Background Animado (CSS Puro) -->
     <div class="fixed inset-0 overflow-hidden -z-10 pointer-events-none">
         <div class="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-indigo-900/20 rounded-full blur-[100px]"></div>
         <div class="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-purple-900/20 rounded-full blur-[100px]"></div>
     </div>
 
     <!-- ==========================================
-         VIEWER APP (Visualizador de Links/Imagens)
+         APP DE VISUALIZAÇÃO (Modo Leitura)
          ========================================== -->
     <div id="viewer-app" class="hidden min-h-screen w-full flex-col items-center justify-center p-4 z-50 bg-gray-900">
         <div class="max-w-3xl w-full animate-fade-in">
@@ -67,10 +68,12 @@
                 <p class="text-gray-400">Conteúdo compartilhado via QR Master.</p>
             </div>
 
-            <div id="viewer-content" class="w-full mb-8"></div>
+            <div id="viewer-content" class="w-full mb-8 flex justify-center">
+                <!-- Conteúdo injetado via JS -->
+            </div>
 
             <div class="text-center">
-                <a href="https://cinemaxbr18-crypto.github.io/QR-Master/" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-full text-white font-medium transition-all border border-gray-700 hover:border-gray-600">
+                <a href="/" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-full text-white font-medium transition-all border border-gray-700 hover:border-gray-600">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
@@ -81,7 +84,7 @@
     </div>
 
     <!-- ==========================================
-         MAIN APPLICATION
+         APP PRINCIPAL (Gerador)
          ========================================== -->
     <div id="main-app" class="flex flex-col min-h-screen">
         
@@ -97,9 +100,11 @@
             </div>
             
             <div class="flex items-center gap-4">
-                <div id="userBadge" class="hidden flex items-center gap-2 text-sm text-indigo-400 font-semibold border border-indigo-500/30 px-3 py-1.5 rounded-full transition-all hover:bg-indigo-900/20 cursor-pointer" onclick="toggleProfileModal()" title="Ver Perfil">
-                    <!-- Username injected via JS -->
+                <!-- Badge do Usuário -->
+                <div id="userBadge" class="hidden flex items-center gap-2 text-sm text-indigo-400 font-semibold border border-indigo-500/30 px-3 py-1.5 rounded-full transition-all hover:bg-indigo-900/20 cursor-pointer" onclick="UIManager.toggleModal('profileModal')" title="Ver Perfil">
+                    <span id="badge-name">Usuário</span>
                 </div>
+                <!-- Botão Login/Logout -->
                 <button id="authBtn" class="text-sm bg-gray-800 hover:bg-gray-700 border border-gray-700 px-4 py-2 rounded-lg transition-colors font-medium">
                     Carregando...
                 </button>
@@ -109,22 +114,22 @@
         <!-- Main Content -->
         <main class="flex-grow container mx-auto p-4 md:p-8 flex flex-col lg:flex-row gap-8 items-start justify-center">
             
-            <!-- Left Panel: Configuration -->
+            <!-- Painel Esquerdo: Configuração -->
             <div class="w-full lg:w-1/2 glass-panel rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
                 <h2 class="text-2xl font-bold mb-6 text-gray-100 flex items-center gap-2">Configurar QR Code</h2>
 
-                <!-- Tabs -->
+                <!-- Tabs de Navegação -->
                 <div class="grid grid-cols-5 gap-1.5 mb-6 p-1.5 bg-gray-800/60 rounded-xl border border-gray-700/50">
-                    <button onclick="switchTab('url')" class="type-tab py-2.5 rounded-lg bg-indigo-600 text-white font-medium text-xs md:text-sm transition-all hover:bg-gray-700">Link</button>
-                    <button onclick="switchTab('text')" class="type-tab py-2.5 rounded-lg bg-gray-700 text-gray-400 font-medium text-xs md:text-sm transition-all hover:text-white hover:bg-gray-600">Texto</button>
-                    <button onclick="switchTab('image')" class="type-tab py-2.5 rounded-lg bg-gray-700 text-gray-400 font-medium text-xs md:text-sm transition-all hover:text-white hover:bg-gray-600 flex items-center justify-center gap-1">
+                    <button data-type="url" class="type-tab active-tab py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all">Link</button>
+                    <button data-type="text" class="type-tab py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white">Texto</button>
+                    <button data-type="image" class="type-tab py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white flex items-center justify-center gap-1">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>Img
                     </button>
-                    <button onclick="switchTab('wifi')" class="type-tab py-2.5 rounded-lg bg-gray-700 text-gray-400 font-medium text-xs md:text-sm transition-all hover:text-white hover:bg-gray-600">Wi-Fi</button>
-                    <button onclick="switchTab('pix')" class="type-tab py-2.5 rounded-lg bg-gray-700 text-gray-400 font-medium text-xs md:text-sm transition-all hover:text-white hover:bg-gray-600"><span class="text-green-400 font-bold">Pix</span></button>
+                    <button data-type="wifi" class="type-tab py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white">Wi-Fi</button>
+                    <button data-type="pix" class="type-tab py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white"><span class="text-green-400 font-bold">Pix</span></button>
                 </div>
 
-                <!-- Input Forms -->
+                <!-- Formulários de Input -->
                 <div class="space-y-4 min-h-[220px]">
                     
                     <!-- URL -->
@@ -142,17 +147,18 @@
                         <textarea id="text-val" rows="4" placeholder="Escreva algo especial..." class="w-full bg-gray-800 border border-gray-700 rounded-xl p-4 text-white focus:border-indigo-500 focus:outline-none transition-all resize-none"></textarea>
                     </div>
 
-                    <!-- IMAGE -->
+                    <!-- IMAGE (PREMIUM) -->
                     <div id="input-image" class="input-section hidden relative">
+                        <!-- Lock Overlay -->
                         <div class="premium-lock absolute inset-0 z-20 bg-gray-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 rounded-xl border border-gray-700 hidden">
                             <div class="bg-indigo-600/20 p-3 rounded-full mb-3 text-indigo-400"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></div>
                             <h3 class="text-white font-bold mb-1">Recurso Premium</h3>
-                            <button onclick="toggleLoginModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold transition-colors mt-2">Desbloquear</button>
+                            <button onclick="UIManager.toggleModal('loginModal')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold transition-colors mt-2">Desbloquear</button>
                         </div>
                         <label class="block text-gray-400 text-sm mb-2 font-medium">Link da Imagem</label>
                         <div class="flex items-center justify-between bg-gray-800 p-3 rounded-lg border border-gray-700 mb-3">
                             <span class="text-xs text-gray-400">Hospede grátis:</span>
-                            <button onclick="openImgBB()" class="text-xs bg-gray-700 hover:bg-gray-600 text-blue-400 px-3 py-1 rounded transition-colors font-medium">Ir para ImgBB ↗</button>
+                            <button onclick="window.open('https://pt-br.imgbb.com/', '_blank')" class="text-xs bg-gray-700 hover:bg-gray-600 text-blue-400 px-3 py-1 rounded transition-colors font-medium">Ir para ImgBB ↗</button>
                         </div>
                         <input type="url" id="image-val" placeholder="https://i.ibb.co/..." class="w-full bg-gray-800 border border-gray-700 rounded-xl p-4 text-white focus:border-indigo-500 focus:outline-none transition-all">
                     </div>
@@ -167,7 +173,7 @@
                             <div class="flex-grow relative">
                                 <label class="block text-gray-400 text-sm mb-1">Senha</label>
                                 <input type="password" id="wifi-pass" class="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 pr-10 text-white focus:border-indigo-500 outline-none">
-                                <button onclick="togglePassVis('wifi-pass', this)" class="absolute right-3 top-8 text-gray-500 hover:text-white">👁️</button>
+                                <button onclick="UIManager.togglePassVis('wifi-pass', this)" class="absolute right-3 top-8 text-gray-500 hover:text-white">👁️</button>
                             </div>
                             <div class="w-1/3">
                                 <label class="block text-gray-400 text-sm mb-1">Tipo</label>
@@ -180,12 +186,13 @@
                         </div>
                     </div>
 
-                    <!-- PIX -->
+                    <!-- PIX (PREMIUM) -->
                     <div id="input-pix" class="input-section hidden space-y-3 relative">
+                        <!-- Lock Overlay -->
                         <div class="premium-lock absolute inset-0 z-20 bg-gray-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 rounded-xl border border-gray-700 hidden">
                             <div class="bg-green-600/20 p-3 rounded-full mb-3 text-green-400"><span class="text-xl">❖</span></div>
                             <h3 class="text-white font-bold mb-1">Pix é Premium</h3>
-                            <button onclick="toggleLoginModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold transition-colors mt-2">Desbloquear</button>
+                            <button onclick="UIManager.toggleModal('loginModal')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold transition-colors mt-2">Desbloquear</button>
                         </div>
                         <div>
                             <label class="block text-gray-400 text-sm mb-1">Chave Pix</label>
@@ -208,7 +215,7 @@
                     </div>
                 </div>
 
-                <!-- Footer -->
+                <!-- Footer: Logo Upload (VIP) -->
                 <div class="mt-8 pt-6 border-t border-gray-700/50">
                     <h3 class="text-sm font-semibold text-gray-300 mb-3 flex items-center justify-between">
                         Personalizar Logo <span class="text-[10px] text-indigo-400 bg-indigo-900/30 px-2 py-0.5 rounded border border-indigo-500/30 uppercase tracking-wide font-bold">VIP</span>
@@ -221,12 +228,12 @@
                     </div>
                 </div>
 
-                <button id="generateBtn" onclick="generateQR()" class="w-full mt-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/20 transform transition-all hover:scale-[1.02] active:scale-[0.98] border border-white/10 text-lg tracking-wide uppercase">
+                <button id="generateBtn" onclick="QRManager.generate()" class="w-full mt-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/20 transform transition-all hover:scale-[1.02] active:scale-[0.98] border border-white/10 text-lg tracking-wide uppercase">
                     Gerar QR Code
                 </button>
             </div>
 
-            <!-- Right Panel: Preview -->
+            <!-- Painel Direito: Preview -->
             <div class="w-full lg:w-1/2 flex flex-col items-center justify-center pt-8 lg:pt-0">
                 <div class="relative group">
                     <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-[2.5rem] blur-xl opacity-40 group-hover:opacity-60 transition duration-1000"></div>
@@ -235,7 +242,7 @@
                     </div>
                 </div>
                 <div class="flex gap-4 mt-10">
-                    <button onclick="downloadQR()" class="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-8 py-3.5 rounded-full font-bold transition-all border border-gray-700 hover:border-gray-500 shadow-lg hover:shadow-indigo-500/10">
+                    <button onclick="QRManager.download()" class="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-8 py-3.5 rounded-full font-bold transition-all border border-gray-700 hover:border-gray-500 shadow-lg hover:shadow-indigo-500/10">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                         Baixar PNG
                     </button>
@@ -251,12 +258,12 @@
     <!-- Login Modal -->
     <div id="loginModal" class="fixed inset-0 bg-black/80 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-gray-800 rounded-3xl p-8 max-w-md w-full border border-gray-700 shadow-2xl relative">
-            <button onclick="closeModal('loginModal')" class="absolute top-5 right-5 text-gray-500 hover:text-white"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <button onclick="UIManager.closeModal('loginModal')" class="absolute top-5 right-5 text-gray-500 hover:text-white"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
             
             <h2 class="text-2xl font-bold text-center mb-2">Acesse sua Conta</h2>
             <p class="text-gray-400 text-center text-sm mb-8">Desbloqueie Pix e QR Codes de Imagem.</p>
 
-            <button onclick="loginWithGoogle()" class="w-full bg-white hover:bg-gray-100 text-gray-900 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-3 transition-colors mb-6 shadow-lg">
+            <button onclick="AuthManager.loginWithGoogle()" class="w-full bg-white hover:bg-gray-100 text-gray-900 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-3 transition-colors mb-6 shadow-lg">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google">Continuar com Google
             </button>
 
@@ -268,30 +275,30 @@
                 <input type="email" id="emailInput" placeholder="seu@email.com" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3.5 text-white focus:border-indigo-500 outline-none">
                 <div class="relative">
                     <input type="password" id="passInput" placeholder="Senha" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3.5 pr-10 text-white focus:border-indigo-500 outline-none">
-                    <button onclick="togglePassVis('passInput', this)" class="absolute right-3 top-3.5 text-gray-500 hover:text-white">👁️</button>
+                    <button onclick="UIManager.togglePassVis('passInput', this)" class="absolute right-3 top-3.5 text-gray-500 hover:text-white">👁️</button>
                 </div>
             </div>
 
             <div class="flex gap-3 mt-6">
-                <button onclick="handleEmailAuth(false)" class="flex-1 bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-bold transition-colors">Entrar</button>
-                <button onclick="handleEmailAuth(true)" class="flex-1 border border-indigo-600 text-indigo-400 hover:bg-indigo-900/30 py-3 rounded-xl font-bold transition-colors">Criar</button>
+                <button onclick="AuthManager.handleEmailAuth(false)" class="flex-1 bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-bold transition-colors">Entrar</button>
+                <button onclick="AuthManager.handleEmailAuth(true)" class="flex-1 border border-indigo-600 text-indigo-400 hover:bg-indigo-900/30 py-3 rounded-xl font-bold transition-colors">Criar</button>
             </div>
-            <p class="text-center mt-4 text-xs text-gray-500 cursor-pointer hover:text-gray-300 underline" onclick="openResetFlow()">Esqueci minha senha / Adicionar Senha</p>
+            <p class="text-center mt-4 text-xs text-gray-500 cursor-pointer hover:text-gray-300 underline" onclick="AuthManager.openResetFlow()">Esqueci minha senha</p>
         </div>
     </div>
 
     <!-- Password Reset Flow Modal -->
     <div id="resetModal" class="fixed inset-0 bg-black/80 z-[110] hidden items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-gray-800 rounded-3xl p-8 max-w-sm w-full border border-gray-700 shadow-2xl relative">
-            <button onclick="closeModal('resetModal')" class="absolute top-5 right-5 text-gray-500 hover:text-white"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <button onclick="UIManager.closeModal('resetModal')" class="absolute top-5 right-5 text-gray-500 hover:text-white"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
             <h3 class="text-xl font-bold mb-2">Recuperar / Criar Senha</h3>
-            <p class="text-sm text-gray-400 mb-4">Enviaremos um email com um link contendo um código de verificação.</p>
+            <p class="text-sm text-gray-400 mb-4">Enviaremos um email com um link e código de verificação.</p>
             <input type="email" id="resetEmailInput" placeholder="Digite seu email" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 mb-4 text-white focus:border-indigo-500 outline-none">
-            <button onclick="sendResetLink()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold mb-3">Enviar Código por Email</button>
+            <button onclick="AuthManager.sendResetLink()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold mb-3">Enviar Email</button>
             
             <div class="border-t border-gray-700 pt-3 mt-3">
-                <p class="text-xs text-gray-400 mb-2">Já recebeu o email?</p>
-                <button onclick="openManualCodeEntry()" class="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg text-sm font-semibold">Tenho um Código (Colar)</button>
+                <p class="text-xs text-gray-400 mb-2">Já tem o código?</p>
+                <button onclick="AuthManager.openManualCodeEntry()" class="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg text-sm font-semibold">Digitar Código Manualmente</button>
             </div>
         </div>
     </div>
@@ -299,11 +306,11 @@
     <!-- Manual Code Entry & New Password Modal -->
     <div id="newPasswordModal" class="fixed inset-0 bg-black/80 z-[120] hidden items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-gray-800 rounded-3xl p-8 max-w-sm w-full border border-gray-700 shadow-2xl relative">
-            <button onclick="closeModal('newPasswordModal')" class="absolute top-5 right-5 text-gray-500 hover:text-white"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <button onclick="UIManager.closeModal('newPasswordModal')" class="absolute top-5 right-5 text-gray-500 hover:text-white"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
             
-            <h3 class="text-xl font-bold mb-2 text-center text-green-400">Definir Senha</h3>
+            <h3 class="text-xl font-bold mb-2 text-center text-green-400">Definir Nova Senha</h3>
             <p class="text-xs text-gray-400 mb-4 text-center leading-relaxed">
-                Cole o código que está no link do seu email (parametro <b>oobCode</b>) ou clique direto no link do email.
+                Insira o código enviado por email (parametro <b>oobCode</b> do link) ou clique direto no link do email.
             </p>
             
             <!-- Code Input -->
@@ -314,17 +321,17 @@
             <label class="text-xs text-gray-500 font-bold uppercase mb-1 block">Nova Senha</label>
             <div class="relative mb-4">
                 <input type="password" id="newPassInput" placeholder="******" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 pr-10 text-white focus:border-indigo-500 outline-none">
-                <button onclick="togglePassVis('newPassInput', this)" class="absolute right-3 top-3 text-gray-500 hover:text-white">👁️</button>
+                <button onclick="UIManager.togglePassVis('newPassInput', this)" class="absolute right-3 top-3 text-gray-500 hover:text-white">👁️</button>
             </div>
             
-            <button onclick="confirmNewPassword()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold">Salvar Nova Senha</button>
+            <button onclick="AuthManager.confirmNewPassword()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold">Salvar Nova Senha</button>
         </div>
     </div>
 
     <!-- Profile & Settings Modal -->
     <div id="profileModal" class="fixed inset-0 bg-black/80 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-gray-800 rounded-3xl p-6 max-w-md w-full border border-gray-700 shadow-2xl relative h-[auto] max-h-[80vh] flex flex-col">
-            <button onclick="closeModal('profileModal')" class="absolute top-5 right-5 text-gray-500 hover:text-white"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <button onclick="UIManager.closeModal('profileModal')" class="absolute top-5 right-5 text-gray-500 hover:text-white"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
             
             <div class="flex items-center gap-4 mb-6">
                 <div class="w-14 h-14 bg-indigo-600 rounded-full flex items-center justify-center text-2xl">👤</div>
@@ -337,19 +344,19 @@
 
             <!-- Profile Tabs -->
             <div class="flex gap-2 mb-4 border-b border-gray-700 pb-2">
-                <button onclick="switchProfileTab('general')" class="prof-tab text-sm font-medium px-3 py-1 text-white border-b-2 border-indigo-500">Geral</button>
-                <button onclick="switchProfileTab('security')" class="prof-tab text-sm font-medium px-3 py-1 text-gray-400 hover:text-white">Segurança</button>
+                <button onclick="UIManager.switchProfileTab('general')" class="prof-tab text-sm font-medium px-3 py-1 text-white border-b-2 border-indigo-500" data-target="general">Geral</button>
+                <button onclick="UIManager.switchProfileTab('security')" class="prof-tab text-sm font-medium px-3 py-1 text-gray-400 hover:text-white" data-target="security">Segurança</button>
             </div>
 
             <div class="flex-grow overflow-y-auto pr-2 space-y-4">
                 <!-- General Tab -->
                 <div id="tab-general" class="profile-section">
                     <div class="bg-gray-700/30 p-4 rounded-xl border border-gray-700/50">
-                        <p class="text-sm text-gray-300">Modo Ilimitado Ativo</p>
-                        <p class="text-xs text-gray-500 mt-1">Você tem acesso total aos recursos Premium.</p>
+                        <p class="text-sm text-gray-300 font-bold">Status Premium</p>
+                        <p class="text-xs text-gray-500 mt-1">Sua conta tem acesso aos recursos avançados.</p>
                     </div>
                     
-                    <button onclick="verifyEmail()" id="btnVerifyEmail" class="w-full mt-4 bg-indigo-900/40 border border-indigo-500/30 text-indigo-300 py-3 rounded-xl font-semibold hidden">
+                    <button onclick="AuthManager.verifyEmail()" id="btnVerifyEmail" class="w-full mt-4 bg-indigo-900/40 border border-indigo-500/30 text-indigo-300 py-3 rounded-xl font-semibold hidden">
                         Verificar Email Agora
                     </button>
                 </div>
@@ -360,455 +367,526 @@
                     <div class="bg-gray-900 p-4 rounded-xl border border-gray-700">
                         <label class="text-xs text-gray-400 uppercase font-bold mb-2 block">Alterar Email</label>
                         <input type="email" id="newEmailVal" placeholder="Novo Email" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-sm text-white mb-2">
-                        <button onclick="updateUserEmail()" class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded transition-colors w-full">Atualizar Email</button>
+                        <button onclick="AuthManager.updateUserEmail()" class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded transition-colors w-full">Atualizar Email</button>
                     </div>
 
                     <!-- Add/Change Password Trigger -->
                     <div class="bg-gray-900 p-4 rounded-xl border border-gray-700">
                         <label class="text-xs text-gray-400 uppercase font-bold mb-2 block">Senha</label>
-                        <p class="text-xs text-gray-500 mb-3">Para segurança, enviamos um código para redefinição.</p>
-                        <button onclick="triggerPasswordResetFromProfile()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded transition-colors w-full">Definir Nova Senha</button>
+                        <p class="text-xs text-gray-500 mb-3">Enviaremos um link para você redefinir sua senha.</p>
+                        <button onclick="AuthManager.triggerPasswordResetFromProfile()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded transition-colors w-full">Redefinir Senha</button>
                     </div>
                 </div>
             </div>
 
-            <button onclick="logout()" class="mt-4 w-full border border-red-500/30 text-red-400 hover:bg-red-900/20 py-3 rounded-xl font-semibold transition-colors">Sair da Conta</button>
+            <button onclick="AuthManager.logout()" class="mt-4 w-full border border-red-500/30 text-red-400 hover:bg-red-900/20 py-3 rounded-xl font-semibold transition-colors">Sair da Conta</button>
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-5 right-5 px-6 py-4 rounded-xl shadow-2xl text-white transform transition-all duration-300 translate-y-24 z-[200] font-medium border border-white/10 flex items-center gap-3"></div>
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 px-6 py-4 rounded-xl shadow-2xl text-white transform transition-all duration-300 translate-y-32 z-[200] font-medium border border-white/10 flex items-center gap-3"></div>
 
     <!-- ==========================================
-         JAVASCRIPT
+         JAVASCRIPT LOGIC
          ========================================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
         import { 
             getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, 
             createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithCustomToken, 
             signInAnonymously, sendPasswordResetEmail, sendEmailVerification, updateProfile,
-            updateEmail, updatePassword, linkWithCredential, EmailAuthProvider, confirmPasswordReset,
-            verifyPasswordResetCode
+            updateEmail, updatePassword, linkWithCredential, EmailAuthProvider, confirmPasswordReset
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, doc, setDoc, getDoc, updateDoc, increment, collection, 
-            query, orderBy, limit, addDoc, getDocs, serverTimestamp 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // CONFIG
-        const firebaseConfig = {
-            apiKey: "AIzaSyCGvo2a43dsDGBv0K6ELy0yjrPZmbemqVg",
-            authDomain: "qr-master-65489.firebaseapp.com",
-            projectId: "qr-master-65489",
-            storageBucket: "qr-master-65489.firebasestorage.app",
-            messagingSenderId: "303212642438",
-            appId: "1:303212642438:web:65ef833e4ecacd00b21107"
+        // CONFIGURAÇÃO CENTRALIZADA
+        const Config = {
+            firebase: {
+                apiKey: "AIzaSyCGvo2a43dsDGBv0K6ELy0yjrPZmbemqVg",
+                authDomain: "qr-master-65489.firebaseapp.com",
+                projectId: "qr-master-65489",
+                storageBucket: "qr-master-65489.firebasestorage.app",
+                messagingSenderId: "303212642438",
+                appId: "1:303212642438:web:65ef833e4ecacd00b21107",
+                measurementId: "G-YB097SJZY1"
+            },
+            colors: {
+                primary: "#4F46E5",
+                bg: "#ffffff"
+            }
         };
 
-        let auth, db, googleProvider, currentUser = null;
+        // VARIÁVEIS GLOBAIS
+        let auth, db, analytics, googleProvider;
         let qrCodeObj = null;
+        let currentUser = null;
+        let currentQRType = 'url';
 
-        // INIT
-        try {
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            auth.languageCode = 'pt';
-            db = getFirestore(app);
-            googleProvider = new GoogleAuthProvider();
-            
-            initApp();
-        } catch (e) { console.error("Init Error", e); }
-
-        async function initApp() {
-            if (checkViewerMode()) return;
-            // Check for Password Reset Mode in URL
-            checkUrlActions();
-
-            initQR();
-
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                try { await signInWithCustomToken(auth, __initial_auth_token); } catch (e) { await tryAnon(); }
-            } else if (!auth.currentUser) {
-                await tryAnon();
-            }
-            window.switchTab('url');
-        }
-
-        async function tryAnon() {
-            try { await signInAnonymously(auth); } catch (e) {}
-        }
-
-        // URL ACTION HANDLER (Reset Password)
-        function checkUrlActions() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const mode = urlParams.get('mode');
-            const oobCode = urlParams.get('oobCode');
-
-            if (mode === 'resetPassword' && oobCode) {
-                // Pre-fill the code for the user
-                document.getElementById('manualOobCode').value = oobCode;
-                document.getElementById('newPasswordModal').classList.remove('hidden');
-                document.getElementById('newPasswordModal').classList.add('flex');
-            }
-        }
-
-        // AUTH STATE
-        onAuthStateChanged(auth, async (user) => {
-            currentUser = user;
-            updateUI(user);
-        });
-
-        // ------------------------------------------------------------
-        // AUTH ACTIONS
-        // ------------------------------------------------------------
-        window.loginWithGoogle = async () => {
-            try {
-                const res = await signInWithPopup(auth, googleProvider);
-                window.closeModal('loginModal');
-                showToast(`Bem-vindo, ${res.user.displayName}!`, "success");
-            } catch (e) { showToast(e.message, "error"); }
-        };
-
-        window.handleEmailAuth = async (isRegister) => {
-            const email = document.getElementById('emailInput').value;
-            const pass = document.getElementById('passInput').value;
-            if (!email || !pass) return showToast("Preencha email e senha", "error");
-
-            try {
-                if (isRegister) {
-                    if (currentUser && currentUser.isAnonymous) {
-                         const cred = EmailAuthProvider.credential(email, pass);
-                         await linkWithCredential(currentUser, cred);
-                         await updateProfile(currentUser, { displayName: email.split('@')[0] });
-                         showToast("Conta criada e vinculada!", "success");
-                    } else {
-                        const res = await createUserWithEmailAndPassword(auth, email, pass);
-                        await updateProfile(res.user, { displayName: email.split('@')[0] });
-                        showToast("Conta criada!", "success");
-                    }
-                } else {
-                    await signInWithEmailAndPassword(auth, email, pass);
-                    showToast("Login realizado!", "success");
-                }
-                window.closeModal('loginModal');
-            } catch (e) { 
-                if (e.code === 'auth/credential-already-in-use') showToast("Email já usado. Faça login.", "error");
-                else showToast(e.message, "error"); 
-            }
-        };
-
-        // Reset Password Flow (Email Link + Manual Code)
-        window.openResetFlow = () => {
-            window.closeModal('loginModal');
-            document.getElementById('resetModal').classList.remove('hidden');
-            document.getElementById('resetModal').classList.add('flex');
-            if (document.getElementById('emailInput').value) {
-                document.getElementById('resetEmailInput').value = document.getElementById('emailInput').value;
-            }
-        };
-        
-        window.triggerPasswordResetFromProfile = () => {
-             window.closeModal('profileModal');
-             document.getElementById('resetModal').classList.remove('hidden');
-             document.getElementById('resetModal').classList.add('flex');
-             if(currentUser && currentUser.email) {
-                 document.getElementById('resetEmailInput').value = currentUser.email;
-             }
-        };
-
-        window.sendResetLink = async () => {
-            const email = document.getElementById('resetEmailInput').value;
-            if (!email) return showToast("Digite o email", "error");
-            try {
-                await sendPasswordResetEmail(auth, email);
-                showToast("Código enviado para seu email!", "success");
-                // Open the code entry modal immediately for user convenience
-                window.closeModal('resetModal');
-                window.openManualCodeEntry();
-            } catch (e) { showToast("Erro: " + e.message, "error"); }
-        };
-
-        window.openManualCodeEntry = () => {
-            window.closeModal('resetModal');
-            document.getElementById('newPasswordModal').classList.remove('hidden');
-            document.getElementById('newPasswordModal').classList.add('flex');
-        };
-
-        // Confirm New Password (Logic for both Link & Manual Code)
-        window.confirmNewPassword = async () => {
-            const newPass = document.getElementById('newPassInput').value;
-            // Get code from input (pasted manually) or URL param
-            const code = document.getElementById('manualOobCode').value || new URLSearchParams(window.location.search).get('oobCode');
-            
-            if (!newPass || newPass.length < 6) return showToast("Senha deve ter 6+ dígitos", "error");
-            if (!code) return showToast("Código de verificação ausente", "error");
-
-            try {
-                await confirmPasswordReset(auth, code, newPass);
-                showToast("Senha redefinida com sucesso! Faça login.", "success");
-                document.getElementById('newPasswordModal').classList.add('hidden');
-                document.getElementById('loginModal').classList.remove('hidden');
-                document.getElementById('loginModal').classList.add('flex');
+        // ========================================================
+        // UI MANAGER: Gerencia interface, modais e feedback
+        // ========================================================
+        const UIManager = {
+            init: () => {
+                // Event Listeners para Tabs
+                document.querySelectorAll('.type-tab').forEach(btn => {
+                    btn.addEventListener('click', (e) => UIManager.switchTab(e.currentTarget));
+                });
                 
-                // Clean URL
-                window.history.replaceState({}, document.title, window.location.pathname);
-            } catch (e) { 
-                console.error(e);
-                showToast("Código inválido ou expirado.", "error"); 
-            }
-        };
+                // Binding Global para HTML onclicks
+                window.UIManager = UIManager;
+            },
 
-        // Security Settings
-        window.updateUserEmail = async () => {
-            const newEmail = document.getElementById('newEmailVal').value;
-            if (!newEmail) return;
-            try {
-                await updateEmail(currentUser, newEmail);
-                showToast("Email atualizado!", "success");
-                updateUI(currentUser);
-            } catch (e) { showToast("Erro: Faça login novamente para confirmar.", "error"); }
-        };
+            showToast: (msg, type = 'info') => {
+                const t = document.getElementById('toast');
+                t.innerText = msg;
+                const colorClass = type === 'error' ? 'bg-red-500/90' : (type === 'success' ? 'bg-green-500/90' : 'bg-gray-700/90');
+                
+                // Reset classes e aplica novas
+                t.className = `fixed bottom-5 right-5 px-6 py-4 rounded-xl shadow-2xl text-white transform transition-all duration-300 z-[200] font-medium border border-white/10 flex items-center gap-3 ${colorClass}`;
+                
+                // Animação de entrada
+                t.classList.remove('translate-y-32');
+                
+                // Auto hide
+                if (UIManager.toastTimeout) clearTimeout(UIManager.toastTimeout);
+                UIManager.toastTimeout = setTimeout(() => t.classList.add('translate-y-32'), 3500);
+            },
 
-        window.verifyEmail = async () => {
-            if(!currentUser) return;
-            try {
-                await sendEmailVerification(currentUser);
-                showToast("Email de verificação enviado!", "success");
-            } catch (e) { showToast("Muitos pedidos. Tente depois.", "error"); }
-        };
-
-        window.logout = () => signOut(auth).then(() => window.location.reload());
-
-        // ------------------------------------------------------------
-        // UI HELPERS
-        // ------------------------------------------------------------
-        window.togglePassVis = (id, btn) => {
-            const inp = document.getElementById(id);
-            if(inp.type === "password") {
-                inp.type = "text";
-                btn.innerText = "🔒"; 
-            } else {
-                inp.type = "password";
-                btn.innerText = "👁️";
-            }
-        };
-
-        window.switchProfileTab = (tab) => {
-            document.querySelectorAll('.prof-tab').forEach(b => {
-                b.classList.remove('border-b-2', 'border-indigo-500', 'text-white');
-                b.classList.add('text-gray-400');
-            });
-            
-            const btn = Array.from(document.querySelectorAll('.prof-tab')).find(b => 
-                b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${tab}'`)
-            );
-            
-            if(btn) {
-                btn.classList.remove('text-gray-400');
-                btn.classList.add('border-b-2', 'border-indigo-500', 'text-white');
-            }
-            
-            document.querySelectorAll('.profile-section').forEach(s => s.classList.add('hidden'));
-            document.getElementById(`tab-${tab}`).classList.remove('hidden');
-        };
-
-        function updateUI(user) {
-            const isGuest = !user || user.isAnonymous;
-            const badge = document.getElementById('userBadge');
-            const authBtn = document.getElementById('authBtn');
-            
-            // Header
-            if (!isGuest) {
-                authBtn.innerText = "Sair";
-                authBtn.onclick = window.logout;
-                badge.innerText = user.displayName || user.email?.split('@')[0] || 'Visitante';
-                badge.classList.remove('hidden');
-            } else {
-                authBtn.innerText = "Entrar";
-                authBtn.onclick = () => window.toggleModal('loginModal');
-                badge.classList.add('hidden');
-            }
-
-            // Locks
-            const isPrem = !isGuest;
-            document.getElementById('logoLockOverlay').classList.toggle('hidden', isPrem);
-            document.getElementById('logoInput').disabled = !isPrem;
-            document.querySelectorAll('.premium-lock').forEach(el => el.classList.toggle('hidden', isPrem));
-
-            if (!isGuest) {
-                // Profile Data
-                document.getElementById('profileName').innerText = user.displayName || 'Usuário';
-                document.getElementById('profileEmail').innerText = user.email || 'Conta Anônima';
-
-                // Verification Button
-                const vStatus = document.getElementById('verificationStatus');
-                const vBtn = document.getElementById('btnVerifyEmail');
-                if (user.emailVerified) {
-                    vStatus.innerHTML = '<span class="text-green-400 text-xs bg-green-900/30 px-2 py-0.5 rounded">Email Verificado ✓</span>';
-                    vBtn.classList.add('hidden');
-                } else if (user.email) {
-                    vStatus.innerHTML = '<span class="text-yellow-500 text-xs bg-yellow-900/30 px-2 py-0.5 rounded">Email Não Verificado</span>';
-                    vBtn.classList.remove('hidden');
+            toggleModal: (id) => {
+                const el = document.getElementById(id);
+                if(el.classList.contains('hidden')) {
+                    el.classList.remove('hidden');
+                    el.classList.add('flex');
                 } else {
-                    vStatus.innerHTML = '';
-                    vBtn.classList.add('hidden');
+                    el.classList.add('hidden');
+                    el.classList.remove('flex');
                 }
-            }
-        }
+            },
 
-        // ------------------------------------------------------------
-        // CORE QR LOGIC
-        // ------------------------------------------------------------
-        function initQR() {
-            qrCodeObj = new QRCodeStyling({
-                width: 300, height: 300, type: "svg", data: window.location.href,
-                image: "", dotsOptions: { color: "#4F46E5", type: "rounded" },
-                backgroundOptions: { color: "#ffffff" },
-                imageOptions: { crossOrigin: "anonymous", margin: 10 }
-            });
-            document.getElementById('canvas-container').innerHTML = '';
-            qrCodeObj.append(document.getElementById('canvas-container'));
-        }
+            closeModal: (id) => {
+                const el = document.getElementById(id);
+                el.classList.add('hidden');
+                el.classList.remove('flex');
+            },
 
-        window.generateQR = async () => {
-            const isGuest = !currentUser || currentUser.isAnonymous;
-            
-            // Lock Premium Features (Pix/Image) but NO numerical limits
-            if (isGuest && (window.currentType === 'pix' || window.currentType === 'image')) {
-                 return window.toggleModal('loginModal');
-            }
-
-            let data = "";
-            const baseUrl = window.location.origin + window.location.pathname;
-
-            try {
-                if (window.currentType === 'url') {
-                    const val = document.getElementById('url-val').value;
-                    if(!val) throw new Error("Insira uma URL.");
-                    data = val;
-                } else if (window.currentType === 'text') {
-                    const val = document.getElementById('text-val').value;
-                    if(!val) throw new Error("Insira um texto.");
-                    data = `${baseUrl}?msg=${encodeURIComponent(val)}`;
-                } else if (window.currentType === 'image') {
-                    if(isGuest) throw new Error("Login necessário.");
-                    const val = document.getElementById('image-val').value;
-                    if(!val) throw new Error("Insira a URL.");
-                    data = `${baseUrl}?img=${encodeURIComponent(val)}`;
-                } else if (window.currentType === 'wifi') {
-                    const ssid = document.getElementById('wifi-ssid').value;
-                    const pass = document.getElementById('wifi-pass').value;
-                    const type = document.getElementById('wifi-type').value;
-                    if(!ssid) throw new Error("SSID obrigatório.");
-                    data = `WIFI:T:${type};S:${ssid};P:${pass};;`;
-                } else if (window.currentType === 'pix') {
-                    if(isGuest) throw new Error("Login necessário.");
-                    const key = document.getElementById('pix-key').value;
-                    const name = document.getElementById('pix-name').value;
-                    const city = document.getElementById('pix-city').value;
-                    if(!key || !name || !city) throw new Error("Preencha Chave, Nome e Cidade.");
-                    data = generatePixPayload(key, name, city, document.getElementById('pix-amount').value);
-                }
-
-                const logoFile = document.getElementById('logoInput').files[0];
-                const updateQR = (img) => {
-                    qrCodeObj.update({ data: data, image: img });
-                    showToast("QR Code Gerado!", "success");
-                };
-
-                if (logoFile && !isGuest) {
-                    const reader = new FileReader();
-                    reader.onload = () => updateQR(reader.result);
-                    reader.readAsDataURL(logoFile);
+            togglePassVis: (id, btn) => {
+                const inp = document.getElementById(id);
+                if(inp.type === "password") {
+                    inp.type = "text";
+                    btn.innerText = "🔒"; 
                 } else {
-                    updateQR("");
+                    inp.type = "password";
+                    btn.innerText = "👁️";
+                }
+            },
+
+            switchTab: (btnElement) => {
+                const type = btnElement.getAttribute('data-type');
+                currentQRType = type;
+
+                // Atualiza abas visuais
+                document.querySelectorAll('.type-tab').forEach(b => {
+                    b.classList.remove('bg-indigo-600', 'text-white', 'active-tab');
+                    b.classList.add('text-gray-400');
+                });
+                btnElement.classList.remove('text-gray-400');
+                btnElement.classList.add('bg-indigo-600', 'text-white', 'active-tab');
+
+                // Mostra input correto
+                document.querySelectorAll('.input-section').forEach(s => s.classList.add('hidden'));
+                document.getElementById(`input-${type}`).classList.remove('hidden');
+            },
+
+            switchProfileTab: (tabName) => {
+                document.querySelectorAll('.prof-tab').forEach(b => {
+                    b.classList.remove('border-b-2', 'border-indigo-500', 'text-white');
+                    b.classList.add('text-gray-400');
+                });
+                
+                const activeBtn = document.querySelector(`.prof-tab[data-target="${tabName}"]`);
+                if(activeBtn) {
+                    activeBtn.classList.remove('text-gray-400');
+                    activeBtn.classList.add('border-b-2', 'border-indigo-500', 'text-white');
+                }
+                
+                document.querySelectorAll('.profile-section').forEach(s => s.classList.add('hidden'));
+                document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            },
+
+            updateAuthUI: (user) => {
+                const isGuest = !user || user.isAnonymous;
+                const badge = document.getElementById('userBadge');
+                const badgeName = document.getElementById('badge-name');
+                const authBtn = document.getElementById('authBtn');
+                
+                // Header State
+                if (!isGuest) {
+                    authBtn.innerText = "Sair";
+                    authBtn.onclick = AuthManager.logout;
+                    badgeName.innerText = user.displayName || user.email?.split('@')[0] || 'Usuário';
+                    badge.classList.remove('hidden');
+                } else {
+                    authBtn.innerText = "Entrar";
+                    authBtn.onclick = () => UIManager.toggleModal('loginModal');
+                    badge.classList.add('hidden');
                 }
 
-            } catch (e) { showToast(e.message, "error"); }
+                // Premium Locks (Pix, Imagem, Logo)
+                const isPremium = !isGuest;
+                document.getElementById('logoLockOverlay').classList.toggle('hidden', isPremium);
+                document.getElementById('logoInput').disabled = !isPremium;
+                document.querySelectorAll('.premium-lock').forEach(el => el.classList.toggle('hidden', isPremium));
+
+                // Modal de Perfil
+                if (!isGuest) {
+                    document.getElementById('profileName').innerText = user.displayName || 'Usuário';
+                    document.getElementById('profileEmail').innerText = user.email || 'Conta sem email';
+
+                    // Status de Verificação
+                    const vStatus = document.getElementById('verificationStatus');
+                    const vBtn = document.getElementById('btnVerifyEmail');
+                    
+                    if (user.emailVerified) {
+                        vStatus.innerHTML = '<span class="text-green-400 text-xs bg-green-900/30 px-2 py-0.5 rounded">Email Verificado ✓</span>';
+                        vBtn.classList.add('hidden');
+                    } else if (user.email) {
+                        vStatus.innerHTML = '<span class="text-yellow-500 text-xs bg-yellow-900/30 px-2 py-0.5 rounded">Email Não Verificado</span>';
+                        vBtn.classList.remove('hidden');
+                    }
+                }
+            }
         };
 
-        // Pix Helper
-        function generatePixPayload(key, name, city, amount, txid = '***') {
-             name = name.substring(0, 25).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-             city = city.substring(0, 15).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-             const format = (id, val) => `${id}${val.length.toString().padStart(2, '0')}${val}`;
-             let payload = format('00', '01') + format('26', format('00', 'BR.GOV.BCB.PIX') + format('01', key)) + format('52', '0000') + format('53', '986');
-             if (amount) payload += format('54', parseFloat(amount).toFixed(2));
-             payload += format('58', 'BR') + format('59', name) + format('60', city) + format('62', format('05', txid)) + '6304';
-             
-             // CRC16
-             const poly = 0x1021;
-             let crc = 0xFFFF;
-             for (let i = 0; i < payload.length; i++) {
-                 crc ^= payload.charCodeAt(i) << 8;
-                 for (let j = 0; j < 8; j++) {
-                     if ((crc & 0x8000) !== 0) crc = (crc << 1) ^ poly;
-                     else crc = crc << 1;
+        // ========================================================
+        // AUTH MANAGER: Lógica de Autenticação Firebase
+        // ========================================================
+        const AuthManager = {
+            init: async () => {
+                try {
+                    const app = initializeApp(Config.firebase);
+                    auth = getAuth(app);
+                    auth.languageCode = 'pt'; // Define emails para Português
+                    db = getFirestore(app);
+                    analytics = getAnalytics(app); // Inicializa Analytics
+                    googleProvider = new GoogleAuthProvider();
+
+                    // Listener de Estado
+                    onAuthStateChanged(auth, (user) => {
+                        currentUser = user;
+                        UIManager.updateAuthUI(user);
+                    });
+
+                    // Tratamento de URL (Reset de Senha / Verificação)
+                    AuthManager.checkUrlActions();
+
+                    // Login Inicial (Guest ou Token) - Lógica de Fallback Robusta
+                    try {
+                        let loginSuccess = false;
+
+                        // 1. Tenta usar o Token Customizado (se disponível)
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            try {
+                                await signInWithCustomToken(auth, __initial_auth_token);
+                                loginSuccess = true;
+                            } catch (e) {
+                                console.warn("Aviso: Token customizado falhou. Tentando acesso anónimo.", e);
+                            }
+                        }
+
+                        // 2. Se não logou e não tem utilizador ativo, tenta Anónimo
+                        // Adicionado try-catch específico para erro de restrição administrativa
+                        if (!loginSuccess && !auth.currentUser) {
+                            try {
+                                await signInAnonymously(auth);
+                            } catch (anonError) {
+                                if (anonError.code === 'auth/admin-restricted-operation') {
+                                    console.warn("Autenticação Anônima desativada no console. App rodando em modo Visitante sem Auth.");
+                                    // Não lançamos erro, apenas deixamos o currentUser como null.
+                                    // A UI já sabe lidar com isso (mostrando botões de login).
+                                } else {
+                                    throw anonError; // Outros erros repassamos
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error("Erro na autenticação inicial:", error);
+                        // Apenas mostra toast se for um erro crítico que não seja o admin-restricted
+                        if(error.code !== 'auth/admin-restricted-operation') {
+                            UIManager.showToast("Modo offline / erro de autenticação.", "error");
+                        }
+                    }
+
+                    // Binding Global
+                    window.AuthManager = AuthManager;
+
+                } catch (e) {
+                    console.error("Firebase Init Error", e);
+                    UIManager.showToast("Erro ao conectar no servidor.", "error");
+                }
+            },
+
+            checkUrlActions: () => {
+                const params = new URLSearchParams(window.location.search);
+                const mode = params.get('mode');
+                const oobCode = params.get('oobCode');
+
+                if (mode === 'resetPassword' && oobCode) {
+                    document.getElementById('manualOobCode').value = oobCode;
+                    UIManager.toggleModal('newPasswordModal');
+                    // Limpa URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            },
+
+            loginWithGoogle: async () => {
+                try {
+                    const res = await signInWithPopup(auth, googleProvider);
+                    UIManager.closeModal('loginModal');
+                    UIManager.showToast(`Bem-vindo, ${res.user.displayName}!`, "success");
+                } catch (e) { UIManager.showToast(e.message, "error"); }
+            },
+
+            handleEmailAuth: async (isRegister) => {
+                const email = document.getElementById('emailInput').value;
+                const pass = document.getElementById('passInput').value;
+                if (!email || !pass) return UIManager.showToast("Preencha email e senha", "error");
+
+                try {
+                    if (isRegister) {
+                        // Tenta vincular se for anônimo, senão cria novo
+                        if (currentUser && currentUser.isAnonymous) {
+                            const cred = EmailAuthProvider.credential(email, pass);
+                            await linkWithCredential(currentUser, cred);
+                            await updateProfile(currentUser, { displayName: email.split('@')[0] });
+                            UIManager.showToast("Conta criada e vinculada!", "success");
+                        } else {
+                            const res = await createUserWithEmailAndPassword(auth, email, pass);
+                            await updateProfile(res.user, { displayName: email.split('@')[0] });
+                            UIManager.showToast("Conta criada com sucesso!", "success");
+                        }
+                    } else {
+                        await signInWithEmailAndPassword(auth, email, pass);
+                        UIManager.showToast("Login realizado!", "success");
+                    }
+                    UIManager.closeModal('loginModal');
+                } catch (e) {
+                    if (e.code === 'auth/credential-already-in-use') {
+                         UIManager.showToast("Email já existe. Tente fazer login.", "error");
+                    } else {
+                        UIManager.showToast(e.message, "error");
+                    }
+                }
+            },
+
+            openResetFlow: () => {
+                UIManager.closeModal('loginModal');
+                UIManager.toggleModal('resetModal');
+                const storedEmail = document.getElementById('emailInput').value;
+                if(storedEmail) document.getElementById('resetEmailInput').value = storedEmail;
+            },
+
+            triggerPasswordResetFromProfile: () => {
+                UIManager.closeModal('profileModal');
+                UIManager.toggleModal('resetModal');
+                if(currentUser && currentUser.email) {
+                    document.getElementById('resetEmailInput').value = currentUser.email;
+                }
+            },
+
+            sendResetLink: async () => {
+                const email = document.getElementById('resetEmailInput').value;
+                if (!email) return UIManager.showToast("Digite o email", "error");
+                try {
+                    await sendPasswordResetEmail(auth, email);
+                    UIManager.showToast("Email enviado! Verifique sua caixa de entrada.", "success");
+                    UIManager.closeModal('resetModal');
+                    UIManager.toggleModal('newPasswordModal'); // Abre para inserir código caso necessário
+                } catch (e) { UIManager.showToast("Erro: " + e.message, "error"); }
+            },
+            
+            openManualCodeEntry: () => {
+                UIManager.closeModal('resetModal');
+                UIManager.toggleModal('newPasswordModal');
+            },
+
+            confirmNewPassword: async () => {
+                const newPass = document.getElementById('newPassInput').value;
+                const code = document.getElementById('manualOobCode').value;
+                
+                if (!newPass || newPass.length < 6) return UIManager.showToast("Senha deve ter 6+ dígitos", "error");
+                if (!code) return UIManager.showToast("Insira o código de verificação", "error");
+
+                try {
+                    await confirmPasswordReset(auth, code, newPass);
+                    UIManager.showToast("Senha alterada! Faça login.", "success");
+                    UIManager.closeModal('newPasswordModal');
+                    UIManager.toggleModal('loginModal');
+                } catch (e) { 
+                    console.error(e);
+                    UIManager.showToast("Código inválido ou expirado.", "error"); 
+                }
+            },
+
+            updateUserEmail: async () => {
+                const newEmail = document.getElementById('newEmailVal').value;
+                if (!newEmail) return;
+                try {
+                    await updateEmail(currentUser, newEmail);
+                    UIManager.showToast("Email atualizado!", "success");
+                    UIManager.updateAuthUI(currentUser);
+                } catch (e) { UIManager.showToast("Necessário login recente para esta ação.", "error"); }
+            },
+
+            verifyEmail: async () => {
+                if(!currentUser) return;
+                try {
+                    await sendEmailVerification(currentUser);
+                    UIManager.showToast("Email de verificação enviado!", "success");
+                } catch (e) { UIManager.showToast("Muitas tentativas. Aguarde.", "error"); }
+            },
+
+            logout: () => signOut(auth).then(() => window.location.reload())
+        };
+
+        // ========================================================
+        // QR MANAGER: Lógica de Geração de QR Code
+        // ========================================================
+        const QRManager = {
+            init: () => {
+                qrCodeObj = new QRCodeStyling({
+                    width: 300, height: 300, type: "svg", data: window.location.href,
+                    image: "", dotsOptions: { color: Config.colors.primary, type: "rounded" },
+                    backgroundOptions: { color: Config.colors.bg },
+                    imageOptions: { crossOrigin: "anonymous", margin: 10 }
+                });
+                
+                const container = document.getElementById('canvas-container');
+                container.innerHTML = '';
+                qrCodeObj.append(container);
+
+                // Binding Global
+                window.QRManager = QRManager;
+            },
+
+            generate: async () => {
+                const isGuest = !currentUser || currentUser.isAnonymous;
+                
+                // Valida Permissões Premium
+                if (isGuest && ['pix', 'image'].includes(currentQRType)) {
+                     return UIManager.toggleModal('loginModal');
+                }
+
+                let data = "";
+                const baseUrl = window.location.origin + window.location.pathname;
+
+                try {
+                    switch (currentQRType) {
+                        case 'url':
+                            const url = document.getElementById('url-val').value;
+                            if(!url) throw new Error("Insira uma URL.");
+                            data = url;
+                            break;
+                        case 'text':
+                            const txt = document.getElementById('text-val').value;
+                            if(!txt) throw new Error("Insira um texto.");
+                            data = `${baseUrl}?msg=${encodeURIComponent(txt)}`;
+                            break;
+                        case 'image':
+                            const imgUrl = document.getElementById('image-val').value;
+                            if(!imgUrl) throw new Error("Insira a URL da imagem.");
+                            data = `${baseUrl}?img=${encodeURIComponent(imgUrl)}`;
+                            break;
+                        case 'wifi':
+                            const ssid = document.getElementById('wifi-ssid').value;
+                            const pass = document.getElementById('wifi-pass').value;
+                            const type = document.getElementById('wifi-type').value;
+                            if(!ssid) throw new Error("SSID obrigatório.");
+                            data = `WIFI:T:${type};S:${ssid};P:${pass};;`;
+                            break;
+                        case 'pix':
+                            const key = document.getElementById('pix-key').value;
+                            const name = document.getElementById('pix-name').value;
+                            const city = document.getElementById('pix-city').value;
+                            if(!key || !name || !city) throw new Error("Preencha Chave, Nome e Cidade.");
+                            data = QRManager.generatePixPayload(key, name, city, document.getElementById('pix-amount').value);
+                            break;
+                    }
+
+                    // Processamento de Logo
+                    const logoFile = document.getElementById('logoInput').files[0];
+                    if (logoFile && !isGuest) {
+                        const reader = new FileReader();
+                        reader.onload = () => QRManager.updateQR(data, reader.result);
+                        reader.readAsDataURL(logoFile);
+                    } else {
+                        QRManager.updateQR(data, "");
+                    }
+
+                } catch (e) { UIManager.showToast(e.message, "error"); }
+            },
+
+            updateQR: (data, img) => {
+                qrCodeObj.update({ data: data, image: img });
+                UIManager.showToast("QR Code Gerado!", "success");
+            },
+
+            download: () => qrCodeObj.download({ name: "qr-master-code", extension: "png" }),
+
+            // Helper para Pix (BR Code)
+            generatePixPayload: (key, name, city, amount, txid = '***') => {
+                 name = name.substring(0, 25).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                 city = city.substring(0, 15).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                 const format = (id, val) => `${id}${val.length.toString().padStart(2, '0')}${val}`;
+                 let payload = format('00', '01') + format('26', format('00', 'BR.GOV.BCB.PIX') + format('01', key)) + format('52', '0000') + format('53', '986');
+                 if (amount) payload += format('54', parseFloat(amount).toFixed(2));
+                 payload += format('58', 'BR') + format('59', name) + format('60', city) + format('62', format('05', txid)) + '6304';
+                 
+                 // CRC16 Checksum
+                 const poly = 0x1021;
+                 let crc = 0xFFFF;
+                 for (let i = 0; i < payload.length; i++) {
+                     crc ^= payload.charCodeAt(i) << 8;
+                     for (let j = 0; j < 8; j++) {
+                         if ((crc & 0x8000) !== 0) crc = (crc << 1) ^ poly;
+                         else crc = crc << 1;
+                     }
                  }
-             }
-             return payload + (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
-        }
+                 return payload + (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+            }
+        };
 
-        // Viewer Helper
+        // ========================================================
+        // VIEWER MODE: Visualizador de conteúdo compartilhado
+        // ========================================================
         function checkViewerMode() {
             const p = new URLSearchParams(window.location.search);
-            if (!p.get('msg') && !p.get('img')) return false;
-            document.getElementById('main-app').classList.add('hidden');
-            document.getElementById('viewer-app').classList.remove('hidden');
-            document.getElementById('viewer-app').classList.add('flex');
+            const msg = p.get('msg');
+            const img = p.get('img');
             
-            const c = document.getElementById('viewer-content');
-            if (p.get('img')) {
-                c.innerHTML = `<img src="${decodeURIComponent(p.get('img'))}" class="w-full rounded-xl shadow-2xl">`;
+            if (!msg && !img) return false;
+
+            document.getElementById('main-app').classList.add('hidden');
+            const viewer = document.getElementById('viewer-app');
+            viewer.classList.remove('hidden');
+            viewer.classList.add('flex');
+            
+            const contentDiv = document.getElementById('viewer-content');
+            
+            if (img) {
+                contentDiv.innerHTML = `<img src="${decodeURIComponent(img)}" class="max-w-full rounded-xl shadow-2xl border border-gray-700" alt="Conteúdo Compartilhado">`;
             } else {
-                c.innerHTML = `<div class="bg-gray-800 p-8 rounded-xl border border-gray-700 text-2xl text-white text-center">"${decodeURIComponent(p.get('msg'))}"</div>`;
+                contentDiv.innerHTML = `<div class="bg-gray-800 p-8 rounded-xl border border-gray-700 text-2xl text-white text-center font-medium shadow-lg max-w-lg w-full">"${decodeURIComponent(msg)}"</div>`;
             }
             return true;
         }
 
-        // GLOBAL EXPORTS
-        window.switchTab = (t) => {
-            // Remove active classes
-            document.querySelectorAll('.type-tab').forEach(e => {
-                e.classList.remove('bg-indigo-600', 'text-white');
-                e.classList.add('bg-gray-700', 'text-gray-400');
-            });
-            
-            // Activate current button
-            const activeBtn = Array.from(document.querySelectorAll('.type-tab')).find(b => 
-                b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${t}'`)
-            );
-
-            if (activeBtn) {
-                activeBtn.classList.remove('bg-gray-700', 'text-gray-400');
-                activeBtn.classList.add('bg-indigo-600', 'text-white');
-            }
-
-            document.querySelectorAll('.input-section').forEach(s => s.classList.add('hidden'));
-            const section = document.getElementById(`input-${t}`);
-            if(section) section.classList.remove('hidden');
-            window.currentType = t;
-        };
-        
-        window.toggleModal = (id) => {
-            const el = document.getElementById(id);
-            if(el.classList.contains('hidden')) { el.classList.remove('hidden'); el.classList.add('flex'); }
-            else { el.classList.add('hidden'); el.classList.remove('flex'); }
-        };
-        window.toggleProfileModal = () => window.toggleModal('profileModal');
-        window.closeModal = (id) => {
-            document.getElementById(id).classList.add('hidden');
-            document.getElementById(id).classList.remove('flex');
-        };
-        window.downloadQR = () => qrCodeObj.download({ name: "qr-master", extension: "png" });
-        window.openImgBB = () => window.open('https://pt-br.imgbb.com/', '_blank');
-        
-        function showToast(msg, type) {
-            const t = document.getElementById('toast');
-            t.innerText = msg;
-            t.className = `fixed bottom-5 right-5 px-6 py-4 rounded-xl shadow-2xl text-white transform transition-all duration-300 z-[200] font-medium border border-white/10 flex items-center gap-3 ${type === 'error' ? 'bg-red-500/90' : 'bg-green-500/90'}`;
-            t.classList.remove('translate-y-24');
-            setTimeout(() => t.classList.add('translate-y-24'), 3000);
+        // BOOTSTRAP
+        if (!checkViewerMode()) {
+            UIManager.init();
+            AuthManager.init();
+            QRManager.init();
+            UIManager.switchTab(document.querySelector('[data-type="url"]'));
         }
 
     </script>
