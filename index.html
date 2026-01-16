@@ -164,7 +164,7 @@
                     </button>
                     <!-- NEW: Img + Text -->
                     <button data-type="imgtext" class="type-tab col-span-1 py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white flex items-center justify-center gap-1 whitespace-nowrap">
-                        <span class="text-[10px]">Img+Text</span>
+                        <span class="text-[10px]">📷+📝</span>
                     </button>
                     <button data-type="wifi" class="type-tab col-span-1 py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white whitespace-nowrap">Wi-Fi</button>
                     <button data-type="pix" class="type-tab col-span-1 py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white whitespace-nowrap"><span class="text-green-400 font-bold">Pix</span></button>
@@ -301,7 +301,7 @@
                 <div class="flex gap-4 mt-10">
                     <button onclick="QRManager.download()" class="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-8 py-3.5 rounded-full font-bold transition-all border border-gray-700 hover:border-gray-500 shadow-lg hover:shadow-indigo-500/10">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                        Baixar Qr
+                        Baixar PNG
                     </button>
                 </div>
             </div>
@@ -470,7 +470,7 @@
             updateEmail, updatePassword, linkWithCredential, EmailAuthProvider, confirmPasswordReset,
             verifyPasswordResetCode, applyActionCode
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // CONFIGURAÇÃO CENTRALIZADA
         const Config = {
@@ -629,6 +629,23 @@
                     onAuthStateChanged(auth, (user) => {
                         currentUser = user;
                         UIManager.updateAuthUI(user);
+                        
+                        // Lógica de Novo Dispositivo
+                        if (user && !user.isAnonymous) {
+                            const deviceId = localStorage.getItem('device_id_' + user.uid);
+                            if (!deviceId) {
+                                // Primeiro login neste navegador = Novo Dispositivo
+                                localStorage.setItem('device_id_' + user.uid, Date.now().toString());
+                                
+                                // Enviar alerta de segurança
+                                AuthManager.sendEmailNotification(
+                                    user.email,
+                                    "Novo login detectado na sua conta QR Master",
+                                    `<p>Olá, detectamos um novo acesso à sua conta.</p><p>Se não foi você, recomendamos alterar sua senha imediatamente.</p>`
+                                );
+                                setTimeout(() => UIManager.showToast("Alerta de novo dispositivo enviado.", "info"), 1500);
+                            }
+                        }
                     });
 
                     const hasAction = await AuthManager.checkUrlActions();
@@ -651,6 +668,23 @@
                 } catch (e) {
                     console.error("Firebase Error", e);
                     UIManager.showToast("Erro ao conectar no servidor.", "error");
+                }
+            },
+
+            // Função para escrever na coleção 'mail' e disparar a Extensão Trigger Email
+            sendEmailNotification: async (to, subject, html) => {
+                if (!to) return;
+                try {
+                    await addDoc(collection(db, 'mail'), {
+                        to: to,
+                        message: {
+                            subject: subject,
+                            html: html
+                        }
+                    });
+                    console.log(`Email de "${subject}" enfileirado para ${to}`);
+                } catch (e) {
+                    console.error("Erro ao enfileirar email:", e);
                 }
             },
 
@@ -701,8 +735,19 @@
             loginWithGoogle: async () => {
                 try {
                     const res = await signInWithPopup(auth, googleProvider);
+                    // Verifica se é novo usuário
+                    if (res.user.metadata.creationTime === res.user.metadata.lastSignInTime) {
+                        // Envia boas-vindas
+                        AuthManager.sendEmailNotification(
+                            res.user.email,
+                            "Bem-vindo ao QR Master!",
+                            "<h1>Bem-vindo!</h1><p>Obrigado por criar sua conta no QR Master. Aproveite todos os recursos premium.</p>"
+                        );
+                        UIManager.showToast("Boas-vindas enviadas!", "success");
+                    } else {
+                        UIManager.showToast(`Bem-vindo de volta, ${res.user.displayName}!`, "success");
+                    }
                     UIManager.closeModal('loginModal');
-                    UIManager.showToast(`Bem-vindo, ${res.user.displayName}!`, "success");
                 } catch (e) { UIManager.showToast(e.message, "error"); }
             },
 
@@ -717,12 +762,19 @@
                             const cred = EmailAuthProvider.credential(email, pass);
                             await linkWithCredential(currentUser, cred);
                             await updateProfile(currentUser, { displayName: email.split('@')[0] });
-                            UIManager.showToast("Conta criada e vinculada!", "success");
                         } else {
                             const res = await createUserWithEmailAndPassword(auth, email, pass);
                             await updateProfile(res.user, { displayName: email.split('@')[0] });
-                            UIManager.showToast("Conta criada!", "success");
                         }
+                        
+                        // Envia boas-vindas
+                        AuthManager.sendEmailNotification(
+                            email,
+                            "Bem-vindo ao QR Master!",
+                            "<h1>Bem-vindo!</h1><p>Obrigado por criar sua conta no QR Master. Aproveite todos os recursos premium.</p>"
+                        );
+                        UIManager.showToast("Conta criada e e-mail enviado!", "success");
+                        
                     } else {
                         await signInWithEmailAndPassword(auth, email, pass);
                         UIManager.showToast("Login realizado!", "success");
@@ -767,8 +819,24 @@
                 if (!code) return UIManager.showToast("Código inválido", "error");
 
                 try {
+                    // Pega o email antes de resetar (para enviar notificação depois)
+                    // Nota: verifyPasswordResetCode já nos deu o email mas está no DOM
+                    // Simplificação: vamos assumir que o usuário está logado ou sabemos o email.
+                    // Se não estiver logado, não temos como enviar email personalizado fácil sem backend complexo.
+                    // Mas se o usuário estiver logado:
+                    let emailTarget = currentUser ? currentUser.email : null; 
+                    
                     await confirmPasswordReset(auth, code, newPass);
-                    UIManager.showToast("Senha alterada!", "success");
+                    
+                    if (emailTarget) {
+                        AuthManager.sendEmailNotification(
+                            emailTarget,
+                            "Sua senha foi alterada",
+                            "<p>A senha da sua conta QR Master foi alterada com sucesso.</p>"
+                        );
+                    }
+
+                    UIManager.showToast("Senha alterada com sucesso!", "success");
                     UIManager.closeModal('newPasswordModal');
                     UIManager.toggleModal('loginModal');
                 } catch (e) { UIManager.showToast("Erro ao alterar senha.", "error"); }
@@ -930,8 +998,14 @@
                             return;
                         }
 
-                        // Se for uma URL externa ou texto qualquer, codifica em ?msg= para abrir no Viewer
-                        // Isso força a abertura da interface de "Conteúdo Recebido" com botões de compartilhar
+                        // DETECÇÃO DE IMAGEM: Se for um link de imagem direta, abre como ?img=
+                        if (decodedText.match(/\.(jpeg|jpg|gif|png|webp|bmp)$/i) || decodedText.includes('i.ibb.co')) {
+                             const targetUrl = window.location.origin + window.location.pathname + `?img=${encodeURIComponent(decodedText)}`;
+                             window.location.href = targetUrl;
+                             return;
+                        }
+
+                        // Se for uma URL externa ou texto qualquer, codifica em ?msg=
                         const targetUrl = window.location.origin + window.location.pathname + `?msg=${encodeURIComponent(decodedText)}`;
                         window.location.href = targetUrl;
                     },
@@ -989,14 +1063,17 @@
                 }
                 
                 if (ViewerManager.currentMsg) {
-                    // Detecta se é URL para mostrar como link clicável ou texto puro
-                    const isUrl = ViewerManager.currentMsg.startsWith('http');
-                    if (isUrl) {
+                    // Detecta se é URL de imagem
+                    if (ViewerManager.currentMsg.match(/\.(jpeg|jpg|gif|png|webp|bmp)$/i)) {
+                         html += `<div class="relative w-full bg-black flex justify-center items-center p-2"><img src="${ViewerManager.currentMsg}" class="max-h-[60vh] object-contain rounded-lg" alt="Imagem"></div>`;
+                         ViewerManager.currentImg = ViewerManager.currentMsg; // Habilita download
+                    } 
+                    // Detecta se é URL para mostrar como link clicável
+                    else if (ViewerManager.currentMsg.startsWith('http')) {
                         html += `<div class="p-6 bg-gray-800 border-t border-gray-700 text-center break-all">
                             <p class="text-sm text-gray-400 mb-2">Link Escaneado:</p>
                             <a href="${ViewerManager.currentMsg}" target="_blank" class="text-lg text-indigo-400 font-medium hover:underline">${ViewerManager.currentMsg}</a>
                         </div>`;
-                        // Mostra botão extra de abrir link
                         document.getElementById('external-link-btn').classList.remove('hidden');
                     } else {
                         html += `<div class="p-6 bg-gray-800 border-t border-gray-700">
@@ -1008,9 +1085,6 @@
                 contentDiv.innerHTML = html;
                 window.ViewerManager = ViewerManager;
                 
-                // Botão de download visível para tudo (como screenshot ou texto) 
-                // Mas a lógica original era baixar imagem. Se não tem imagem, esconde o download.
-                // O usuário pediu "copiar para todas". O download pode ficar restrito a imagem, mas copiar e zap agora são universais.
                 if (!ViewerManager.currentImg) document.getElementById('btn-download-content').classList.add('hidden');
                 
                 return true;
