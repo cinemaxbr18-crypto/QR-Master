@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="QR Master - Gerador de QR Code Profissional e Seguro.">
-    <title>QR Master - Gerador Premium</title>
+    <title>QR Master - Gerador & Leitor Premium</title>
     
     <!-- Ícone -->
     <link rel="icon" type="image/png" href="logo.png">
@@ -14,8 +14,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Fontes -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- QR Code Library -->
+    <!-- QR Code Library (Geração) -->
     <script type="text/javascript" src="https://unpkg.com/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+    <!-- HTML5-QRCode (Leitura) -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
     <!-- ESTILOS -->
     <style>
@@ -55,29 +57,48 @@
     <!-- ==========================================
          APP DE VISUALIZAÇÃO (Modo Leitura)
          ========================================== -->
-    <div id="viewer-app" class="hidden min-h-screen w-full flex-col items-center justify-center p-4 z-50 bg-gray-900">
-        <div class="max-w-3xl w-full animate-fade-in">
-            <div class="text-center mb-8">
+    <div id="viewer-app" class="hidden min-h-screen w-full flex-col items-center justify-center p-4 z-50 bg-gray-900 overflow-y-auto">
+        <div class="max-w-md w-full animate-fade-in my-8">
+            <div class="text-center mb-6">
                 <div class="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-indigo-500/30">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
                 </div>
-                <h1 class="text-3xl font-bold text-white mb-2">Visualizador Seguro</h1>
-                <p class="text-gray-400">Conteúdo compartilhado via QR Master.</p>
+                <h1 class="text-2xl font-bold text-white mb-1">Conteúdo Recebido</h1>
+                <p class="text-gray-400 text-sm">Escaneado via QR Master</p>
             </div>
 
-            <div id="viewer-content" class="w-full mb-8 flex justify-center">
-                <!-- Conteúdo injetado via JS -->
+            <!-- Card de Conteúdo -->
+            <div class="bg-gray-800 rounded-2xl overflow-hidden shadow-2xl border border-gray-700 mb-6">
+                <div id="viewer-content" class="w-full">
+                    <!-- Conteúdo injetado via JS -->
+                </div>
+            </div>
+
+            <!-- Ações de Compartilhamento -->
+            <div class="grid grid-cols-3 gap-2 mb-8">
+                <button onclick="ViewerManager.shareWhatsApp()" class="flex flex-col items-center gap-1 p-3 bg-gray-800 hover:bg-green-900/30 border border-gray-700 hover:border-green-500/50 rounded-xl transition-all">
+                    <span class="text-2xl">📱</span>
+                    <span class="text-xs font-medium text-gray-300">WhatsApp</span>
+                </button>
+                <button onclick="ViewerManager.copyLink()" class="flex flex-col items-center gap-1 p-3 bg-gray-800 hover:bg-indigo-900/30 border border-gray-700 hover:border-indigo-500/50 rounded-xl transition-all">
+                    <span class="text-2xl">📋</span>
+                    <span class="text-xs font-medium text-gray-300">Copiar</span>
+                </button>
+                <button onclick="ViewerManager.downloadContent()" id="btn-download-content" class="flex flex-col items-center gap-1 p-3 bg-gray-800 hover:bg-purple-900/30 border border-gray-700 hover:border-purple-500/50 rounded-xl transition-all">
+                    <span class="text-2xl">⬇️</span>
+                    <span class="text-xs font-medium text-gray-300">Baixar</span>
+                </button>
             </div>
 
             <div class="text-center">
-                <a href="https://cinemaxbr18-crypto.github.io/QR-Master/" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-full text-white font-medium transition-all border border-gray-700 hover:border-gray-600">
+                <a href="?" class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-full text-white font-medium transition-all shadow-lg shadow-indigo-600/20">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
-                    Criar meu QR Code
+                    Criar Novo QR Code
                 </a>
             </div>
         </div>
@@ -99,13 +120,22 @@
                 <h1 class="text-xl font-bold tracking-wide text-white hidden md:block">QR Master</h1>
             </div>
             
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
+                <!-- Botão Scanner -->
+                <button onclick="ScannerManager.openScanner()" class="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 px-3 py-2 rounded-lg transition-colors text-sm font-medium">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span class="hidden sm:inline">Ler QR</span>
+                </button>
+
                 <!-- Badge do Usuário -->
                 <div id="userBadge" class="hidden flex items-center gap-2 text-sm text-indigo-400 font-semibold border border-indigo-500/30 px-3 py-1.5 rounded-full transition-all hover:bg-indigo-900/20 cursor-pointer" onclick="UIManager.toggleModal('profileModal')" title="Ver Perfil">
                     <span id="badge-name">Usuário</span>
                 </div>
                 <!-- Botão Login/Logout -->
-                <button id="authBtn" class="text-sm bg-gray-800 hover:bg-gray-700 border border-gray-700 px-4 py-2 rounded-lg transition-colors font-medium">
+                <button id="authBtn" class="text-sm bg-indigo-600 hover:bg-indigo-700 border border-indigo-500 px-4 py-2 rounded-lg transition-colors font-medium text-white shadow-lg shadow-indigo-500/20">
                     Carregando...
                 </button>
             </div>
@@ -119,14 +149,18 @@
                 <h2 class="text-2xl font-bold mb-6 text-gray-100 flex items-center gap-2">Configurar QR Code</h2>
 
                 <!-- Tabs de Navegação -->
-                <div class="grid grid-cols-5 gap-1.5 mb-6 p-1.5 bg-gray-800/60 rounded-xl border border-gray-700/50">
-                    <button data-type="url" class="type-tab active-tab py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all">Link</button>
-                    <button data-type="text" class="type-tab py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white">Texto</button>
-                    <button data-type="image" class="type-tab py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white flex items-center justify-center gap-1">
+                <div class="grid grid-cols-6 gap-1 mb-6 p-1.5 bg-gray-800/60 rounded-xl border border-gray-700/50 overflow-x-auto">
+                    <button data-type="url" class="type-tab active-tab col-span-1 py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all whitespace-nowrap">Link</button>
+                    <button data-type="text" class="type-tab col-span-1 py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white whitespace-nowrap">Texto</button>
+                    <button data-type="image" class="type-tab col-span-1 py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white flex items-center justify-center gap-1 whitespace-nowrap">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>Img
                     </button>
-                    <button data-type="wifi" class="type-tab py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white">Wi-Fi</button>
-                    <button data-type="pix" class="type-tab py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white"><span class="text-green-400 font-bold">Pix</span></button>
+                    <!-- NEW: Img + Text -->
+                    <button data-type="imgtext" class="type-tab col-span-1 py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white flex items-center justify-center gap-1 whitespace-nowrap">
+                        <span class="text-[10px]">📷+📝</span>
+                    </button>
+                    <button data-type="wifi" class="type-tab col-span-1 py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white whitespace-nowrap">Wi-Fi</button>
+                    <button data-type="pix" class="type-tab col-span-1 py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-gray-400 hover:text-white whitespace-nowrap"><span class="text-green-400 font-bold">Pix</span></button>
                 </div>
 
                 <!-- Formulários de Input -->
@@ -149,7 +183,6 @@
 
                     <!-- IMAGE (PREMIUM) -->
                     <div id="input-image" class="input-section hidden relative">
-                        <!-- Lock Overlay -->
                         <div class="premium-lock absolute inset-0 z-20 bg-gray-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 rounded-xl border border-gray-700 hidden">
                             <div class="bg-indigo-600/20 p-3 rounded-full mb-3 text-indigo-400"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></div>
                             <h3 class="text-white font-bold mb-1">Recurso Premium</h3>
@@ -161,6 +194,24 @@
                             <button onclick="window.open('https://pt-br.imgbb.com/', '_blank')" class="text-xs bg-gray-700 hover:bg-gray-600 text-blue-400 px-3 py-1 rounded transition-colors font-medium">Ir para ImgBB ↗</button>
                         </div>
                         <input type="url" id="image-val" placeholder="https://i.ibb.co/..." class="w-full bg-gray-800 border border-gray-700 rounded-xl p-4 text-white focus:border-indigo-500 focus:outline-none transition-all">
+                    </div>
+
+                    <!-- IMAGE + TEXT (NEW) -->
+                    <div id="input-imgtext" class="input-section hidden relative space-y-4">
+                        <div class="premium-lock absolute inset-0 z-20 bg-gray-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 rounded-xl border border-gray-700 hidden">
+                            <div class="bg-indigo-600/20 p-3 rounded-full mb-3 text-indigo-400"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></div>
+                            <h3 class="text-white font-bold mb-1">Recurso Premium</h3>
+                            <button onclick="UIManager.toggleModal('loginModal')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold transition-colors mt-2">Desbloquear</button>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2 font-medium">Link da Imagem</label>
+                            <input type="url" id="imgtext-url" placeholder="https://i.ibb.co/..." class="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-white focus:border-indigo-500 outline-none text-sm">
+                            <div class="flex justify-end mt-1"><button onclick="window.open('https://pt-br.imgbb.com/', '_blank')" class="text-[10px] text-blue-400 hover:underline">Hospedar Imagem</button></div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2 font-medium">Texto / Legenda</label>
+                            <textarea id="imgtext-val" rows="3" placeholder="Escreva sua mensagem..." class="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-white focus:border-indigo-500 outline-none resize-none text-sm"></textarea>
+                        </div>
                     </div>
 
                     <!-- WIFI -->
@@ -188,7 +239,6 @@
 
                     <!-- PIX (PREMIUM) -->
                     <div id="input-pix" class="input-section hidden space-y-3 relative">
-                        <!-- Lock Overlay -->
                         <div class="premium-lock absolute inset-0 z-20 bg-gray-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 rounded-xl border border-gray-700 hidden">
                             <div class="bg-green-600/20 p-3 rounded-full mb-3 text-green-400"><span class="text-xl">❖</span></div>
                             <h3 class="text-white font-bold mb-1">Pix é Premium</h3>
@@ -255,13 +305,24 @@
          MODALS
          ========================================== -->
     
+    <!-- Scanner Modal -->
+    <div id="scannerModal" class="fixed inset-0 bg-black/90 z-[150] hidden items-center justify-center p-4 backdrop-blur-md">
+        <div class="bg-gray-800 rounded-3xl p-6 max-w-md w-full border border-gray-700 shadow-2xl relative flex flex-col items-center">
+            <button onclick="ScannerManager.closeScanner()" class="absolute top-4 right-4 text-gray-400 hover:text-white bg-gray-700/50 p-2 rounded-full"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            
+            <h3 class="text-xl font-bold mb-4 text-white">Escanear QR Code</h3>
+            <div id="reader" class="w-full bg-black rounded-xl overflow-hidden mb-4 border border-gray-600" style="min-height: 250px;"></div>
+            <p class="text-xs text-gray-400 text-center">Aponte a câmera para um QR Code.</p>
+        </div>
+    </div>
+
     <!-- Login Modal -->
     <div id="loginModal" class="fixed inset-0 bg-black/80 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-gray-800 rounded-3xl p-8 max-w-md w-full border border-gray-700 shadow-2xl relative">
             <button onclick="UIManager.closeModal('loginModal')" class="absolute top-5 right-5 text-gray-500 hover:text-white"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
             
             <h2 class="text-2xl font-bold text-center mb-2">Acesse sua Conta</h2>
-            <p class="text-gray-400 text-center text-sm mb-8">Desbloqueie Pix e QR Codes de Imagem.</p>
+            <p class="text-gray-400 text-center text-sm mb-8">Desbloqueie Pix, Imagem e Texto+Imagem.</p>
 
             <button onclick="AuthManager.loginWithGoogle()" class="w-full bg-white hover:bg-gray-100 text-gray-900 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-3 transition-colors mb-6 shadow-lg">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google">Continuar com Google
@@ -295,8 +356,6 @@
             <p class="text-sm text-gray-400 mb-4">Enviaremos um email com um link e código de verificação.</p>
             <input type="email" id="resetEmailInput" placeholder="Digite seu email" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 mb-4 text-white focus:border-indigo-500 outline-none">
             <button onclick="AuthManager.sendResetLink()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold mb-3">Enviar Email</button>
-            
-           
         </div>
     </div>
 
@@ -307,7 +366,6 @@
             
             <h3 class="text-xl font-bold mb-2 text-center text-green-400">Definir Nova Senha</h3>
             
-            <!-- Loading Indicator for Automatic Verification -->
             <div id="resetLoader" class="hidden flex-col items-center justify-center py-4">
                 <svg class="animate-spin h-8 w-8 text-indigo-500 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -316,18 +374,15 @@
                 <p class="text-xs text-gray-400 animate-pulse">Verificando link de segurança...</p>
             </div>
 
-            <!-- Context Info -->
             <p id="resetInfoText" class="text-xs text-gray-400 mb-4 text-center leading-relaxed">
                 Insira o código enviado por email ou clique direto no link do email.
             </p>
             
-            <!-- Code Input (Manual) -->
             <div id="manualCodeSection">
                 <label class="text-xs text-gray-500 font-bold uppercase mb-1 block">Código de Verificação</label>
                 <input type="text" id="manualOobCode" placeholder="Cole o código aqui..." class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 mb-3 text-white focus:border-indigo-500 outline-none font-mono text-xs">
             </div>
 
-            <!-- Password Input (Hidden until verified or manual code entered) -->
             <div id="newPassSection">
                 <label class="text-xs text-gray-500 font-bold uppercase mb-1 block">Nova Senha</label>
                 <div class="relative mb-4">
@@ -374,14 +429,12 @@
 
                 <!-- Security Tab -->
                 <div id="tab-security" class="profile-section hidden space-y-4">
-                    <!-- Change Email -->
                     <div class="bg-gray-900 p-4 rounded-xl border border-gray-700">
                         <label class="text-xs text-gray-400 uppercase font-bold mb-2 block">Alterar Email</label>
                         <input type="email" id="newEmailVal" placeholder="Novo Email" class="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-sm text-white mb-2">
                         <button onclick="AuthManager.updateUserEmail()" class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded transition-colors w-full">Atualizar Email</button>
                     </div>
 
-                    <!-- Add/Change Password Trigger -->
                     <div class="bg-gray-900 p-4 rounded-xl border border-gray-700">
                         <label class="text-xs text-gray-400 uppercase font-bold mb-2 block">Senha</label>
                         <p class="text-xs text-gray-500 mb-3">Enviaremos um link para você redefinir sua senha.</p>
@@ -434,18 +487,16 @@
         let qrCodeObj = null;
         let currentUser = null;
         let currentQRType = 'url';
+        let html5QrcodeScanner = null;
 
         // ========================================================
         // UI MANAGER: Gerencia interface, modais e feedback
         // ========================================================
         const UIManager = {
             init: () => {
-                // Event Listeners para Tabs
                 document.querySelectorAll('.type-tab').forEach(btn => {
                     btn.addEventListener('click', (e) => UIManager.switchTab(e.currentTarget));
                 });
-                
-                // Binding Global para HTML onclicks
                 window.UIManager = UIManager;
             },
 
@@ -453,14 +504,8 @@
                 const t = document.getElementById('toast');
                 t.innerText = msg;
                 const colorClass = type === 'error' ? 'bg-red-500/90' : (type === 'success' ? 'bg-green-500/90' : 'bg-gray-700/90');
-                
-                // Reset classes e aplica novas
                 t.className = `fixed bottom-5 right-5 px-6 py-4 rounded-xl shadow-2xl text-white transform transition-all duration-300 z-[200] font-medium border border-white/10 flex items-center gap-3 ${colorClass}`;
-                
-                // Animação de entrada
                 t.classList.remove('translate-y-32');
-                
-                // Auto hide
                 if (UIManager.toastTimeout) clearTimeout(UIManager.toastTimeout);
                 UIManager.toastTimeout = setTimeout(() => t.classList.add('translate-y-32'), 3500);
             },
@@ -497,7 +542,6 @@
                 const type = btnElement.getAttribute('data-type');
                 currentQRType = type;
 
-                // Atualiza abas visuais
                 document.querySelectorAll('.type-tab').forEach(b => {
                     b.classList.remove('bg-indigo-600', 'text-white', 'active-tab');
                     b.classList.add('text-gray-400');
@@ -505,9 +549,9 @@
                 btnElement.classList.remove('text-gray-400');
                 btnElement.classList.add('bg-indigo-600', 'text-white', 'active-tab');
 
-                // Mostra input correto
                 document.querySelectorAll('.input-section').forEach(s => s.classList.add('hidden'));
-                document.getElementById(`input-${type}`).classList.remove('hidden');
+                const target = document.getElementById(`input-${type}`);
+                if(target) target.classList.remove('hidden');
             },
 
             switchProfileTab: (tabName) => {
@@ -515,13 +559,11 @@
                     b.classList.remove('border-b-2', 'border-indigo-500', 'text-white');
                     b.classList.add('text-gray-400');
                 });
-                
                 const activeBtn = document.querySelector(`.prof-tab[data-target="${tabName}"]`);
                 if(activeBtn) {
                     activeBtn.classList.remove('text-gray-400');
                     activeBtn.classList.add('border-b-2', 'border-indigo-500', 'text-white');
                 }
-                
                 document.querySelectorAll('.profile-section').forEach(s => s.classList.add('hidden'));
                 document.getElementById(`tab-${tabName}`).classList.remove('hidden');
             },
@@ -532,7 +574,6 @@
                 const badgeName = document.getElementById('badge-name');
                 const authBtn = document.getElementById('authBtn');
                 
-                // Header State
                 if (!isGuest) {
                     authBtn.innerText = "Sair";
                     authBtn.onclick = AuthManager.logout;
@@ -544,21 +585,16 @@
                     badge.classList.add('hidden');
                 }
 
-                // Premium Locks (Pix, Imagem, Logo)
                 const isPremium = !isGuest;
                 document.getElementById('logoLockOverlay').classList.toggle('hidden', isPremium);
                 document.getElementById('logoInput').disabled = !isPremium;
                 document.querySelectorAll('.premium-lock').forEach(el => el.classList.toggle('hidden', isPremium));
 
-                // Modal de Perfil
                 if (!isGuest) {
                     document.getElementById('profileName').innerText = user.displayName || 'Usuário';
                     document.getElementById('profileEmail').innerText = user.email || 'Conta sem email';
-
-                    // Status de Verificação
                     const vStatus = document.getElementById('verificationStatus');
                     const vBtn = document.getElementById('btnVerifyEmail');
-                    
                     if (user.emailVerified) {
                         vStatus.innerHTML = '<span class="text-green-400 text-xs bg-green-900/30 px-2 py-0.5 rounded">Email Verificado ✓</span>';
                         vBtn.classList.add('hidden');
@@ -571,69 +607,42 @@
         };
 
         // ========================================================
-        // AUTH MANAGER: Lógica de Autenticação Firebase
+        // AUTH MANAGER
         // ========================================================
         const AuthManager = {
             init: async () => {
                 try {
                     const app = initializeApp(Config.firebase);
                     auth = getAuth(app);
-                    auth.languageCode = 'pt'; // Define emails para Português
+                    auth.languageCode = 'pt';
                     db = getFirestore(app);
-                    analytics = getAnalytics(app); // Inicializa Analytics
+                    analytics = getAnalytics(app);
                     googleProvider = new GoogleAuthProvider();
 
-                    // Listener de Estado
                     onAuthStateChanged(auth, (user) => {
                         currentUser = user;
                         UIManager.updateAuthUI(user);
                     });
 
-                    // Tratamento de URL (Reset de Senha / Verificação)
-                    // Agora verifica ANTES de tentar logar anonimamente para evitar conflitos
                     const hasAction = await AuthManager.checkUrlActions();
 
-                    // Login Inicial (Guest ou Token) - Lógica de Fallback Robusta
-                    // Só tenta login anônimo se NÃO estivermos processando uma ação de URL (como resetar senha)
                     if (!hasAction) {
                         try {
                             let loginSuccess = false;
-
-                            // 1. Tenta usar o Token Customizado (se disponível)
                             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                                 try {
                                     await signInWithCustomToken(auth, __initial_auth_token);
                                     loginSuccess = true;
-                                } catch (e) {
-                                    console.warn("Aviso: Token customizado falhou. Tentando acesso anónimo.", e);
-                                }
+                                } catch (e) { console.warn("Token falhou", e); }
                             }
-
-                            // 2. Se não logou e não tem utilizador ativo, tenta Anónimo
                             if (!loginSuccess && !auth.currentUser) {
-                                try {
-                                    await signInAnonymously(auth);
-                                } catch (anonError) {
-                                    if (anonError.code === 'auth/admin-restricted-operation') {
-                                        console.warn("Autenticação Anônima desativada no console. App rodando em modo Visitante sem Auth.");
-                                    } else {
-                                        throw anonError; 
-                                    }
-                                }
+                                try { await signInAnonymously(auth); } catch (e) { /* ignore */ }
                             }
-                        } catch (error) {
-                            console.error("Erro na autenticação inicial:", error);
-                            if(error.code !== 'auth/admin-restricted-operation') {
-                                UIManager.showToast("Modo offline / erro de autenticação.", "error");
-                            }
-                        }
+                        } catch (error) { console.error("Erro auth inicial", error); }
                     }
-
-                    // Binding Global
                     window.AuthManager = AuthManager;
-
                 } catch (e) {
-                    console.error("Firebase Init Error", e);
+                    console.error("Firebase Error", e);
                     UIManager.showToast("Erro ao conectar no servidor.", "error");
                 }
             },
@@ -646,57 +655,39 @@
                 if (!mode || !oobCode) return false;
 
                 if (mode === 'resetPassword') {
-                    // Prepara UI para Reset
                     UIManager.toggleModal('newPasswordModal');
-                    
-                    // Esconde entrada manual, mostra loading
                     document.getElementById('manualCodeSection').classList.add('hidden');
                     document.getElementById('resetLoader').classList.remove('hidden');
                     document.getElementById('resetLoader').classList.add('flex');
-                    document.getElementById('resetInfoText').innerText = "Verificando validade do link...";
+                    document.getElementById('resetInfoText').innerText = "Verificando link...";
                     document.getElementById('newPassSection').classList.add('hidden');
 
                     try {
-                        // Verifica o código usando a API do Firebase
                         const email = await verifyPasswordResetCode(auth, oobCode);
-                        
-                        // SUCESSO: Mostra campo de nova senha
                         document.getElementById('resetLoader').classList.add('hidden');
                         document.getElementById('resetLoader').classList.remove('flex');
                         document.getElementById('resetInfoText').innerHTML = `Redefinir senha para: <b class="text-white">${email}</b>`;
                         document.getElementById('newPassSection').classList.remove('hidden');
-                        
-                        // Preenche o código hidden para o submit funcionar
                         document.getElementById('manualOobCode').value = oobCode;
-                        
                     } catch (e) {
-                        // ERRO: Mostra erro e fallback manual
                         document.getElementById('resetLoader').classList.add('hidden');
                         document.getElementById('resetLoader').classList.remove('flex');
-                        document.getElementById('resetInfoText').innerHTML = `<span class="text-red-400 font-bold">O link expirou ou é inválido.</span><br>Tente inserir o código manualmente se o tiver.`;
+                        document.getElementById('resetInfoText').innerHTML = `<span class="text-red-400 font-bold">Link inválido.</span><br>Tente código manual.`;
                         document.getElementById('manualCodeSection').classList.remove('hidden');
-                        document.getElementById('newPassSection').classList.remove('hidden'); // Deixa tentar manual
+                        document.getElementById('newPassSection').classList.remove('hidden');
                     }
-                    
-                    // Limpa URL para não rodar novamente no refresh
                     window.history.replaceState({}, document.title, window.location.pathname);
                     return true;
-
                 } else if (mode === 'verifyEmail') {
-                    // Tratamento de Verificação de Email
                     UIManager.showToast("Verificando email...", "info");
                     try {
                         await applyActionCode(auth, oobCode);
-                        UIManager.showToast("Email verificado com sucesso! 🎉", "success");
-                        // Dá um tempo para o usuário ver a mensagem antes de recarregar (opcional)
+                        UIManager.showToast("Email verificado! 🎉", "success");
                         setTimeout(() => { if (auth.currentUser) window.location.reload(); }, 2000);
-                    } catch (e) {
-                        UIManager.showToast("Erro ao verificar email. Link expirado?", "error");
-                    }
+                    } catch (e) { UIManager.showToast("Erro ao verificar email.", "error"); }
                     window.history.replaceState({}, document.title, window.location.pathname);
                     return true;
                 }
-
                 return false;
             },
 
@@ -715,7 +706,6 @@
 
                 try {
                     if (isRegister) {
-                        // Tenta vincular se for anônimo, senão cria novo
                         if (currentUser && currentUser.isAnonymous) {
                             const cred = EmailAuthProvider.credential(email, pass);
                             await linkWithCredential(currentUser, cred);
@@ -724,7 +714,7 @@
                         } else {
                             const res = await createUserWithEmailAndPassword(auth, email, pass);
                             await updateProfile(res.user, { displayName: email.split('@')[0] });
-                            UIManager.showToast("Conta criada com sucesso!", "success");
+                            UIManager.showToast("Conta criada!", "success");
                         }
                     } else {
                         await signInWithEmailAndPassword(auth, email, pass);
@@ -733,7 +723,7 @@
                     UIManager.closeModal('loginModal');
                 } catch (e) {
                     if (e.code === 'auth/credential-already-in-use') {
-                         UIManager.showToast("Email já existe. Tente fazer login.", "error");
+                         UIManager.showToast("Email já existe.", "error");
                     } else {
                         UIManager.showToast(e.message, "error");
                     }
@@ -750,9 +740,7 @@
             triggerPasswordResetFromProfile: () => {
                 UIManager.closeModal('profileModal');
                 UIManager.toggleModal('resetModal');
-                if(currentUser && currentUser.email) {
-                    document.getElementById('resetEmailInput').value = currentUser.email;
-                }
+                if(currentUser && currentUser.email) document.getElementById('resetEmailInput').value = currentUser.email;
             },
 
             sendResetLink: async () => {
@@ -760,39 +748,23 @@
                 if (!email) return UIManager.showToast("Digite o email", "error");
                 try {
                     await sendPasswordResetEmail(auth, email);
-                    UIManager.showToast("Email enviado! Verifique sua caixa de entrada.", "success");
+                    UIManager.showToast("Email enviado!", "success");
                     UIManager.closeModal('resetModal');
-                    // Não abre o modal de new password, pois o user tem que clicar no email
-                } catch (e) { UIManager.showToast("Erro: " + e.message, "error"); }
-            },
-            
-            openManualCodeEntry: () => {
-                UIManager.closeModal('resetModal');
-                UIManager.toggleModal('newPasswordModal');
-                // Reseta UI para modo manual
-                document.getElementById('manualCodeSection').classList.remove('hidden');
-                document.getElementById('newPassSection').classList.remove('hidden');
-                document.getElementById('resetLoader').classList.add('hidden');
-                document.getElementById('resetLoader').classList.remove('flex');
-                document.getElementById('resetInfoText').innerText = "Insira o código manualmente.";
+                } catch (e) { UIManager.showToast(e.message, "error"); }
             },
 
             confirmNewPassword: async () => {
                 const newPass = document.getElementById('newPassInput').value;
                 const code = document.getElementById('manualOobCode').value;
-                
-                if (!newPass || newPass.length < 6) return UIManager.showToast("Senha deve ter 6+ dígitos", "error");
-                if (!code) return UIManager.showToast("Link inválido ou código ausente.", "error");
+                if (!newPass || newPass.length < 6) return UIManager.showToast("Senha curta", "error");
+                if (!code) return UIManager.showToast("Código inválido", "error");
 
                 try {
                     await confirmPasswordReset(auth, code, newPass);
-                    UIManager.showToast("Senha alterada com sucesso! Faça login.", "success");
+                    UIManager.showToast("Senha alterada!", "success");
                     UIManager.closeModal('newPasswordModal');
                     UIManager.toggleModal('loginModal');
-                } catch (e) { 
-                    console.error(e);
-                    UIManager.showToast("Código inválido ou expirado.", "error"); 
-                }
+                } catch (e) { UIManager.showToast("Erro ao alterar senha.", "error"); }
             },
 
             updateUserEmail: async () => {
@@ -802,22 +774,22 @@
                     await updateEmail(currentUser, newEmail);
                     UIManager.showToast("Email atualizado!", "success");
                     UIManager.updateAuthUI(currentUser);
-                } catch (e) { UIManager.showToast("Necessário login recente para esta ação.", "error"); }
+                } catch (e) { UIManager.showToast("Login recente necessário.", "error"); }
             },
 
             verifyEmail: async () => {
                 if(!currentUser) return;
                 try {
                     await sendEmailVerification(currentUser);
-                    UIManager.showToast("Email de verificação enviado!", "success");
-                } catch (e) { UIManager.showToast("Muitas tentativas. Aguarde.", "error"); }
+                    UIManager.showToast("Email enviado!", "success");
+                } catch (e) { UIManager.showToast("Muitas tentativas.", "error"); }
             },
 
             logout: () => signOut(auth).then(() => window.location.reload())
         };
 
         // ========================================================
-        // QR MANAGER: Lógica de Geração de QR Code
+        // QR MANAGER: Geração
         // ========================================================
         const QRManager = {
             init: () => {
@@ -827,20 +799,16 @@
                     backgroundOptions: { color: Config.colors.bg },
                     imageOptions: { crossOrigin: "anonymous", margin: 10 }
                 });
-                
                 const container = document.getElementById('canvas-container');
                 container.innerHTML = '';
                 qrCodeObj.append(container);
-
-                // Binding Global
                 window.QRManager = QRManager;
             },
 
             generate: async () => {
                 const isGuest = !currentUser || currentUser.isAnonymous;
-                
-                // Valida Permissões Premium
-                if (isGuest && ['pix', 'image'].includes(currentQRType)) {
+                // Premium validation for pix, image, imgtext
+                if (isGuest && ['pix', 'image', 'imgtext'].includes(currentQRType)) {
                      return UIManager.toggleModal('loginModal');
                 }
 
@@ -864,6 +832,12 @@
                             if(!imgUrl) throw new Error("Insira a URL da imagem.");
                             data = `${baseUrl}?img=${encodeURIComponent(imgUrl)}`;
                             break;
+                        case 'imgtext':
+                            const iUrl = document.getElementById('imgtext-url').value;
+                            const iTxt = document.getElementById('imgtext-val').value;
+                            if(!iUrl || !iTxt) throw new Error("Preencha imagem e texto.");
+                            data = `${baseUrl}?img=${encodeURIComponent(iUrl)}&msg=${encodeURIComponent(iTxt)}`;
+                            break;
                         case 'wifi':
                             const ssid = document.getElementById('wifi-ssid').value;
                             const pass = document.getElementById('wifi-pass').value;
@@ -880,7 +854,6 @@
                             break;
                     }
 
-                    // Processamento de Logo
                     const logoFile = document.getElementById('logoInput').files[0];
                     if (logoFile && !isGuest) {
                         const reader = new FileReader();
@@ -900,7 +873,6 @@
 
             download: () => qrCodeObj.download({ name: "qr-master-code", extension: "png" }),
 
-            // Helper para Pix (BR Code)
             generatePixPayload: (key, name, city, amount, txid = '***') => {
                  name = name.substring(0, 25).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                  city = city.substring(0, 15).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -908,8 +880,6 @@
                  let payload = format('00', '01') + format('26', format('00', 'BR.GOV.BCB.PIX') + format('01', key)) + format('52', '0000') + format('53', '986');
                  if (amount) payload += format('54', parseFloat(amount).toFixed(2));
                  payload += format('58', 'BR') + format('59', name) + format('60', city) + format('62', format('05', txid)) + '6304';
-                 
-                 // CRC16 Checksum
                  const poly = 0x1021;
                  let crc = 0xFFFF;
                  for (let i = 0; i < payload.length; i++) {
@@ -924,32 +894,116 @@
         };
 
         // ========================================================
-        // VIEWER MODE: Visualizador de conteúdo compartilhado
+        // SCANNER MANAGER (NEW)
         // ========================================================
-        function checkViewerMode() {
-            const p = new URLSearchParams(window.location.search);
-            const msg = p.get('msg');
-            const img = p.get('img');
-            
-            if (!msg && !img) return false;
-
-            document.getElementById('main-app').classList.add('hidden');
-            const viewer = document.getElementById('viewer-app');
-            viewer.classList.remove('hidden');
-            viewer.classList.add('flex');
-            
-            const contentDiv = document.getElementById('viewer-content');
-            
-            if (img) {
-                contentDiv.innerHTML = `<img src="${decodeURIComponent(img)}" class="max-w-full rounded-xl shadow-2xl border border-gray-700" alt="Conteúdo Compartilhado">`;
-            } else {
-                contentDiv.innerHTML = `<div class="bg-gray-800 p-8 rounded-xl border border-gray-700 text-2xl text-white text-center font-medium shadow-lg max-w-lg w-full">"${decodeURIComponent(msg)}"</div>`;
+        const ScannerManager = {
+            openScanner: () => {
+                UIManager.toggleModal('scannerModal');
+                if (!html5QrcodeScanner) {
+                    html5QrcodeScanner = new Html5Qrcode("reader");
+                }
+                html5QrcodeScanner.start(
+                    { facingMode: "environment" }, 
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    (decodedText, decodedResult) => {
+                        // Sucesso
+                        ScannerManager.closeScanner();
+                        // Se for URL do próprio app, carrega parâmetros sem reload
+                        if(decodedText.startsWith(window.location.origin)) {
+                            window.location.href = decodedText;
+                        } else {
+                            // Se for link externo, abre
+                            if(decodedText.startsWith("http")) window.open(decodedText, "_blank");
+                            else alert("Conteúdo: " + decodedText);
+                        }
+                    },
+                    (errorMessage) => { /* scanning */ }
+                ).catch(err => {
+                    console.error("Erro camera", err);
+                    UIManager.showToast("Erro ao acessar câmera.", "error");
+                });
+                window.ScannerManager = ScannerManager;
+            },
+            closeScanner: () => {
+                if (html5QrcodeScanner) {
+                    html5QrcodeScanner.stop().then(() => {
+                        html5QrcodeScanner.clear();
+                    }).catch(err => console.error("Erro stop", err));
+                }
+                UIManager.closeModal('scannerModal');
             }
-            return true;
-        }
+        };
+
+        // ========================================================
+        // VIEWER MODE (UPDATED)
+        // ========================================================
+        const ViewerManager = {
+            currentImg: null,
+            currentMsg: null,
+            
+            init: () => {
+                const p = new URLSearchParams(window.location.search);
+                const msg = p.get('msg');
+                const img = p.get('img');
+                
+                if (!msg && !img) return false;
+
+                ViewerManager.currentImg = img ? decodeURIComponent(img) : null;
+                ViewerManager.currentMsg = msg ? decodeURIComponent(msg) : null;
+
+                document.getElementById('main-app').classList.add('hidden');
+                document.getElementById('viewer-app').classList.remove('hidden');
+                document.getElementById('viewer-app').classList.add('flex');
+                
+                const contentDiv = document.getElementById('viewer-content');
+                let html = '';
+
+                // Lógica de Renderização Híbrida
+                if (ViewerManager.currentImg) {
+                    html += `<div class="relative w-full bg-black flex justify-center items-center p-2"><img src="${ViewerManager.currentImg}" class="max-h-[60vh] object-contain rounded-lg" alt="Imagem"></div>`;
+                }
+                
+                if (ViewerManager.currentMsg) {
+                    html += `<div class="p-6 bg-gray-800 border-t border-gray-700">
+                        <p class="text-lg text-white font-medium whitespace-pre-wrap leading-relaxed">${ViewerManager.currentMsg}</p>
+                    </div>`;
+                }
+
+                contentDiv.innerHTML = html;
+                window.ViewerManager = ViewerManager;
+                
+                // Hide download button if no image
+                if (!ViewerManager.currentImg) document.getElementById('btn-download-content').classList.add('hidden');
+                
+                return true;
+            },
+
+            shareWhatsApp: () => {
+                const url = window.location.href;
+                window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank');
+            },
+
+            copyLink: () => {
+                navigator.clipboard.writeText(window.location.href)
+                    .then(() => alert("Link copiado!"))
+                    .catch(() => alert("Erro ao copiar."));
+            },
+
+            downloadContent: () => {
+                if(ViewerManager.currentImg) {
+                    const a = document.createElement('a');
+                    a.href = ViewerManager.currentImg;
+                    a.download = 'conteudo-qr-master.png';
+                    a.target = '_blank'; // Fallback para cors
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }
+            }
+        };
 
         // BOOTSTRAP
-        if (!checkViewerMode()) {
+        if (!ViewerManager.init()) {
             UIManager.init();
             AuthManager.init();
             QRManager.init();
